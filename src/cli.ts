@@ -29,6 +29,7 @@ program
   .option('-r, --registry', 'Enable remote registry checks (npm/PyPI) for supply chain verification')
   .option('-s, --severity <level>', 'Minimum severity threshold to display: critical, high, medium, low, info')
   .option('-i, --ignore <ids...>', 'Finding IDs or titles to ignore (space-separated)')
+  .option('-q, --quiet', 'Only print the summary line and findings count (no per-server details)')
   .action(async (opts) => {
     // Load MCPShield's own config (.mcpshieldrc)
     const shieldConfig = loadMCPShieldConfig();
@@ -90,6 +91,8 @@ program
       printMarkdown(filtered);
     } else if (format === 'sarif') {
       console.log(JSON.stringify(toSarif(filtered, VERSION), null, 2));
+    } else if (opts.quiet) {
+      printQuiet(filtered);
     } else {
       printPretty(configPath, filtered);
     }
@@ -222,6 +225,20 @@ program
       }, 500);
     });
   });
+
+function printQuiet(result: ScanResult): void {
+  const s = result.summary;
+  const parts = [
+    s.critical ? `${s.critical} critical` : null,
+    s.high ? `${s.high} high` : null,
+    s.medium ? `${s.medium} medium` : null,
+    s.low ? `${s.low} low` : null,
+    s.info ? `${s.info} info` : null,
+  ].filter(Boolean);
+  const scoreLabel = s.score >= 80 ? '✅' : s.score >= 60 ? '⚠️' : '🔴';
+  const summary = parts.length ? parts.join(', ') : 'no findings';
+  console.log(`${scoreLabel} Score: ${s.score}/100 — ${summary} (${result.servers.length} server(s) scanned)`);
+}
 
 function applyFilters(result: ScanResult, threshold: Severity, ignoreList: string[]): ScanResult {
   const ignoreLower = ignoreList.map(i => i.toLowerCase());

@@ -49,6 +49,9 @@ npx mcpshield scan --severity high
 # Ignore specific findings
 npx mcpshield scan --ignore MCP-001 MCP-003
 
+# Quiet mode (CI-friendly one-liner output)
+npx mcpshield scan --quiet
+
 # Auto-fix common issues
 npx mcpshield fix
 npx mcpshield fix --dry-run
@@ -90,6 +93,7 @@ Scan MCP server configurations for security issues.
 | `-r, --registry` | Enable remote npm/PyPI registry checks |
 | `-s, --severity <level>` | Minimum severity: `critical`, `high`, `medium`, `low`, `info` |
 | `-i, --ignore <ids...>` | Finding IDs or titles to ignore |
+| `-q, --quiet` | One-line summary output (ideal for CI scripts) |
 | `--no-spinner` | Disable progress spinner |
 
 ### `mcpshield fix`
@@ -247,6 +251,53 @@ pluginRegistry.register(definePlugin({
 ```
 
 Plugins support both sync and async scanners, and errors in plugins are isolated — a crashing plugin won't affect the rest of the scan.
+
+## Programmatic API
+
+MCPShield can be used as a library in your own Node.js tooling:
+
+```typescript
+import {
+  scanAllServers,
+  scanAllServersWithRegistry,
+  loadConfig,
+  autoDetectConfig,
+} from 'mcpshield';
+
+// Load a config file
+const config = loadConfig('/path/to/mcp.json');
+
+// Run a local scan
+const result = scanAllServers(config.mcpServers, '/path/to/mcp.json');
+console.log(`Score: ${result.summary.score}/100`);
+console.log(`Critical: ${result.summary.critical}`);
+
+// Run with remote registry verification
+const fullResult = await scanAllServersWithRegistry(config.mcpServers, '/path/to/mcp.json');
+
+// Access per-server findings
+for (const server of fullResult.servers) {
+  console.log(`${server.name}: ${server.findings.length} findings`);
+  for (const finding of server.findings) {
+    console.log(`  [${finding.severity}] ${finding.title}`);
+    console.log(`  Fix: ${finding.remediation}`);
+  }
+}
+```
+
+### Key Exported Types
+
+```typescript
+import type {
+  ScanResult,       // Top-level result from scanAllServers
+  ServerScanResult, // Per-server findings and score
+  Finding,          // Individual security finding
+  Severity,         // 'critical' | 'high' | 'medium' | 'low' | 'info'
+  FindingCategory,  // 'supply-chain' | 'permissions' | 'configuration' | ...
+  MCPConfig,        // Parsed MCP config file shape
+  MCPServerConfig,  // Individual server config
+} from 'mcpshield';
+```
 
 ## Config Locations
 
