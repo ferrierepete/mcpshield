@@ -76,6 +76,8 @@ export function resolveAIConfig(opts: {
 
 // --- OpenAI-compatible provider (also works with Groq, Together, Ollama, etc.) ---
 
+const MAX_RESPONSE_SIZE = 1_000_000; // 1 MB — prevents memory exhaustion from unbounded AI responses
+
 function createOpenAIProvider(config: AIConfig): AIProvider {
   const baseUrl = config.baseUrl || 'https://api.openai.com/v1';
   const model = config.model || DEFAULT_MODELS.openai;
@@ -102,7 +104,11 @@ function createOpenAIProvider(config: AIConfig): AIProvider {
         throw new Error(`OpenAI API error (${response.status}): ${body}`);
       }
 
-      const data = await response.json() as any;
+      const text = await response.text();
+      if (text.length > MAX_RESPONSE_SIZE) {
+        throw new Error(`AI response too large (${text.length} bytes, max ${MAX_RESPONSE_SIZE}). Aborting to prevent memory exhaustion.`);
+      }
+      const data = JSON.parse(text) as any;
       return {
         content: data.choices?.[0]?.message?.content || '',
         model: data.model || model,
@@ -146,7 +152,11 @@ function createAnthropicProvider(config: AIConfig): AIProvider {
         throw new Error(`Anthropic API error (${response.status}): ${body}`);
       }
 
-      const data = await response.json() as any;
+      const text = await response.text();
+      if (text.length > MAX_RESPONSE_SIZE) {
+        throw new Error(`AI response too large (${text.length} bytes, max ${MAX_RESPONSE_SIZE}). Aborting to prevent memory exhaustion.`);
+      }
+      const data = JSON.parse(text) as any;
       const textBlock = data.content?.find((b: any) => b.type === 'text');
       return {
         content: textBlock?.text || '',
@@ -194,7 +204,11 @@ function createGeminiProvider(config: AIConfig): AIProvider {
         throw new Error(`Gemini API error (${response.status}): ${errBody}`);
       }
 
-      const data = await response.json() as any;
+      const responseBody = await response.text();
+      if (responseBody.length > MAX_RESPONSE_SIZE) {
+        throw new Error(`AI response too large (${responseBody.length} bytes, max ${MAX_RESPONSE_SIZE}). Aborting to prevent memory exhaustion.`);
+      }
+      const data = JSON.parse(responseBody) as any;
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
       return {
         content: text,

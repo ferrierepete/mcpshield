@@ -15,6 +15,14 @@ function makeFinding(id: string, title: string, severity: Finding['severity'] = 
   };
 }
 
+/** Helper that adds a .text() implementation alongside .json() for all mock fetch responses. */
+function withText<T extends object>(mockResponse: T): T & { text: () => Promise<string> } {
+  return {
+    ...mockResponse,
+    text: async () => JSON.stringify(mockResponse.json ? await (mockResponse.json as () => Promise<unknown>)() : {}),
+  } as T & { text: () => Promise<string> };
+}
+
 describe('AI Evaluator', () => {
   describe('applyAIEvaluations', () => {
     it('should apply AI verdicts to matching findings', () => {
@@ -75,7 +83,7 @@ describe('AI Evaluator', () => {
     });
 
     it('should call OpenAI API and parse response', async () => {
-      const mockResponse = {
+      const mockResponse = withText({
         ok: true,
         json: async () => ({
           choices: [{
@@ -88,7 +96,7 @@ describe('AI Evaluator', () => {
           model: 'gpt-4o-mini',
           usage: { prompt_tokens: 100, completion_tokens: 50 },
         }),
-      };
+      });
       global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
       const findings = [makeFinding('MCP-001', 'Test Finding')];
@@ -106,7 +114,7 @@ describe('AI Evaluator', () => {
     });
 
     it('should call Anthropic API correctly', async () => {
-      const mockResponse = {
+      const mockResponse = withText({
         ok: true,
         json: async () => ({
           content: [{
@@ -118,7 +126,7 @@ describe('AI Evaluator', () => {
           model: 'claude-sonnet-4-20250514',
           usage: { input_tokens: 100, output_tokens: 50 },
         }),
-      };
+      });
       global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
       const findings = [makeFinding('MCP-001', 'Test')];
@@ -134,7 +142,7 @@ describe('AI Evaluator', () => {
     });
 
     it('should call Gemini API correctly', async () => {
-      const mockResponse = {
+      const mockResponse = withText({
         ok: true,
         json: async () => ({
           candidates: [{
@@ -148,7 +156,7 @@ describe('AI Evaluator', () => {
           }],
           usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 50 },
         }),
-      };
+      });
       global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
       const findings = [makeFinding('MCP-001', 'Test')];
@@ -163,7 +171,7 @@ describe('AI Evaluator', () => {
     });
 
     it('should handle API errors gracefully with needs-review fallback', async () => {
-      const mockResponse = {
+      const mockResponse = withText({
         ok: true,
         json: async () => ({
           choices: [{
@@ -171,7 +179,7 @@ describe('AI Evaluator', () => {
           }],
           model: 'gpt-4o-mini',
         }),
-      };
+      });
       global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
       const findings = [makeFinding('MCP-001', 'Test')];
@@ -198,17 +206,17 @@ describe('AI Evaluator', () => {
     });
 
     it('should handle markdown-wrapped JSON in AI response', async () => {
-      const mockResponse = {
+      const mockResponse = withText({
         ok: true,
         json: async () => ({
           choices: [{
             message: {
-              content: '```json\n[{"findingId":"MCP-001","verdict":"confirmed","confidence":0.85,"reasoning":"Real risk"}]\n```',
+              content: '```json\n[{\"findingId\":\"MCP-001\",\"verdict\":\"confirmed\",\"confidence\":0.85,\"reasoning\":\"Real risk\"}]\n```',
             },
           }],
           model: 'gpt-4o-mini',
         }),
-      };
+      });
       global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
       const findings = [makeFinding('MCP-001', 'Test')];
@@ -220,7 +228,7 @@ describe('AI Evaluator', () => {
     });
 
     it('should batch large finding sets', async () => {
-      const mockResponse = {
+      const mockResponse = withText({
         ok: true,
         json: async () => ({
           choices: [{
@@ -238,7 +246,7 @@ describe('AI Evaluator', () => {
           model: 'gpt-4o-mini',
           usage: { prompt_tokens: 100, completion_tokens: 50 },
         }),
-      };
+      });
       global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
       // 25 findings should produce 2 batches (20 + 5)
@@ -253,7 +261,7 @@ describe('AI Evaluator', () => {
     });
 
     it('should use custom base URL for OpenAI-compatible providers', async () => {
-      const mockResponse = {
+      const mockResponse = withText({
         ok: true,
         json: async () => ({
           choices: [{
@@ -265,7 +273,7 @@ describe('AI Evaluator', () => {
           }],
           model: 'llama-3',
         }),
-      };
+      });
       global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
       const findings = [makeFinding('MCP-001', 'Test')];
@@ -283,7 +291,7 @@ describe('AI Evaluator', () => {
 
     it('should sanitize env var values (only send keys, not values)', async () => {
       let capturedBody = '';
-      const mockResponse = {
+      const mockResponse = withText({
         ok: true,
         json: async () => ({
           choices: [{
@@ -295,7 +303,7 @@ describe('AI Evaluator', () => {
           }],
           model: 'gpt-4o-mini',
         }),
-      };
+      });
       global.fetch = vi.fn().mockImplementation((_url: string, opts: any) => {
         capturedBody = opts.body;
         return Promise.resolve(mockResponse);

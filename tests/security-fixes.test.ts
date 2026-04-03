@@ -286,6 +286,7 @@ describe('INFO-2: AI parse failure surfacing', () => {
         choices: [{ message: { content: '```json\nnot valid json at all\n```' } }],
         model: 'gpt-4o-mini',
       }),
+      text: async () => '{"choices":[{"message":{"content":"```json\\nnot valid json at all\\n```"}}],"model":"gpt-4o-mini"}',
     } as any);
 
     const findings = [{
@@ -323,6 +324,7 @@ describe('INFO-2: AI parse failure surfacing', () => {
         model: 'gpt-4o-mini',
         usage: { prompt_tokens: 100, completion_tokens: 50 },
       }),
+      text: async () => '{"choices":[{"message":{"content":"[{\\"findingId\\":\\"MCP-001\\",\\"verdict\\":\\"confirmed\\",\\"confidence\\":0.9,\\"reasoning\\":\\"Real risk\\"}]"}}],"model":"gpt-4o-mini","usage":{"prompt_tokens":100,"completion_tokens":50}}',
     } as any);
 
     const findings = [{
@@ -349,6 +351,7 @@ describe('INFO-2: AI parse failure surfacing', () => {
         choices: [{ message: { content: 'completely broken response with no JSON' } }],
         model: 'gpt-4o-mini',
       }),
+      text: async () => '{"choices":[{"message":{"content":"completely broken response with no JSON"}}],"model":"gpt-4o-mini"}',
     } as any);
 
     const findings = [{
@@ -377,6 +380,7 @@ describe('INFO-2: AI parse failure surfacing', () => {
         choices: [{ message: { content: 'totally broken response' } }],
         model: 'gpt-4o-mini',
       }),
+      text: async () => '{"choices":[{"message":{"content":"totally broken response"}}],"model":"gpt-4o-mini"}',
     } as any);
 
     // 25 findings → 2 batches (20 + 5). Both should fail to parse.
