@@ -1,72 +1,39 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to MCPShield are documented here.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
-
-## [0.2.0] - 2026-04-03
+## [0.2.0] — 2026-04-04
 
 ### Added
-- **AI-powered false positive reduction** — opt-in LLM evaluation of findings with `--ai` flag
-- **BYOK (Bring Your Own Key)** support for OpenAI, Anthropic Claude, and Google Gemini
-- **OpenAI-compatible endpoint support** — works with Groq, Together AI, Ollama via `--ai-base-url`
-- **Heuristic confidence scoring** — every finding now gets a confidence score (0.0–1.0) based on 20+ contextual rules
-- `--min-confidence <n>` flag to filter out low-confidence findings (no API key needed)
-- `--ai-provider`, `--ai-model`, `--ai-base-url` CLI flags
-- AI settings in `.mcpshieldrc`: `ai`, `aiProvider`, `aiModel`, `aiBaseUrl`, `minConfidence`
-- Environment variable support: `MCPSHIELD_AI_PROVIDER`, `MCPSHIELD_OPENAI_API_KEY`, `MCPSHIELD_ANTHROPIC_API_KEY`, `MCPSHIELD_GEMINI_API_KEY`, `MCPSHIELD_AI_BASE_URL`
-- Security: env var values are never sent to AI providers — only key names are included in prompts
-- Batched AI evaluation for large finding sets (max 20 per request)
-- Confidence and AI verdict display in pretty output (`(confidence: 85%)`, `[AI: confirmed]`)
-- 52 new tests for confidence scoring and AI evaluation (142 total across 11 suites)
-- `Finding` type now includes optional `confidence` and `aiVerdict` fields
-- New public API exports: `computeConfidence`, `applyConfidenceScores`, `filterByConfidence`, `resolveAIConfig`, `createProvider`, `evaluateWithAI`, `applyAIEvaluations`
-
-## [0.1.1] - 2026-04-03
+- **CLI integration test suite** (`tests/cli-integration.test.ts`) — 40 tests covering `scan`, `list`, `owasp`, `fix`, `watch`, and global flags including output formats, severity filtering, `--ignore`, `--min-confidence`, AI mode, and error paths
+- **Substring matching for `--ignore`** — `--ignore typo` now matches findings containing "typo" anywhere in their ID or title (e.g. "Potential Typosquat"). Previously required exact full title match
+- **`--min-confidence` empty-result warning** — when `--min-confidence` filters all findings to zero, a warning is now printed: `[mcpshield] --min-confidence N filtered all N finding(s). No findings will be displayed.`
+- **`MCP_CONFIG_PATH` fallback warning** — when `MCP_CONFIG_PATH` is set but the file can't be loaded, MCPShield now prints a warning before falling back to auto-detection: `[mcpshield] MCP_CONFIG_PATH is set to "..." but that file could not be loaded. Falling back to auto-detection.`
+- **`fix --dry-run` always prints dry-run banner** — even when no auto-fixable issues are found, `--dry-run` now prints `(Dry run — no changes written)` followed by `✅ No auto-fixable issues found.` (previously exited silently with just the banner)
 
 ### Fixed
-- Corrected MCP config file discovery paths for all supported clients
-- Added missing paths: Claude Code (`~/.claude.json`, `.mcp.json`, `.claude/settings.local.json`), Windsurf (`~/.codeium/windsurf/mcp_config.json`), Continue (`~/.continue/config.json`), Zed (`~/.config/zed/settings.json`)
-- Fixed Claude Desktop Linux path (`~/.config/Claude/` not `~/.config/claude/`)
-- Added Windows `%APPDATA%` path for Claude Desktop
-- Added Cursor project-scope path (`.cursor/mcp.json`)
-- Fixed VS Code path to workspace-level `.vscode/mcp.json` (was incorrectly `~/.vscode/mcp.json`)
-- Removed non-existent paths (`~/.mcp/config.json`, `./mcp.json`)
+- **Version constant** bumped from `0.1.1` to `0.2.0` in CLI (`src/cli.ts`) to match `package.json`
+- **`watch --config <nonexistent>` crash** — `fs.watch()` now has a preceding `fs.existsSync()` guard. Previously, if the config file did not exist, `runWatchScan` would silently log a scan error but `fs.watch` would throw an uncaught `ENOENT` and crash the process
+- **`fix --dry-run` early-return bypass** — removed the `if (available.length === 0) return;` guard that prevented the `(Dry run)` banner from being printed when no fixes were available in dry-run mode
+
+### Changed
+- **`--ignore` behavior** — ID and title matching now uses substring comparison (`id.includes(ignore)`) instead of exact equality. This is a breaking change if you were relying on exact ID-only matching; use `--ignore "MCP-001"` still works exactly
+
+## [0.1.1] — 2026-03-28
 
 ### Added
-- Config format auto-detection: Zed `context_servers` format, Continue array-based `mcpServers`, VS Code `servers` key
-- 3 new test fixtures and test cases for Continue, Zed, and VS Code config formats
-- 90 tests across 9 test suites (was 87)
+- `mcpshield list` command — discover all MCP config files on the system
+- `mcpshield owasp` command — display OWASP MCP Top 10 reference framework
+- `--no-spinner` flag — disable progress spinner for cleaner CI output
+- `.mcpshieldrc` configuration file support — set project-wide defaults (severity threshold, ignore list, AI settings, etc.)
+- **AI false positive reduction** — two-layer system: heuristic confidence scoring (always on) + opt-in LLM evaluation (BYOK)
+- **Supported AI providers** — OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible endpoint (Groq, Together, Ollama)
+- **SARIF output** — GitHub Security tab integration via `github/codeql-action/upload-sarif`
+- **Programmatic API** — import `scanAllServers`, `loadConfig`, `autoDetectConfig` and types directly from the package
+- **Plugin system** — register custom scanners via `pluginRegistry.register(definePlugin({...}))`
 
-## [0.1.0] - 2026-04-03
-
-### Added
-- Initial release
-- `scan` command — auto-detect or specify MCP config files, with `pretty`, `json`, `markdown`, and `sarif` output formats
-- `fix` command — auto-fix common issues (pin versions, replace hardcoded secrets, remove wildcards, upgrade HTTP to HTTPS) with `--dry-run` support
-- `watch` command — live re-scan on config file changes with debouncing
-- `list` command — discover MCP config files across Claude Desktop, VS Code, Cursor, and generic locations
-- `owasp` command — display OWASP MCP Top 10 reference
-- Five built-in scanner modules: configuration, supply-chain, permissions, threats, transport
-- Docker-specific checks: `--privileged` flag, sensitive volume mounts, Docker socket exposure, unpinned image tags, exposed ports
-- HTTP/SSE transport checks: insecure HTTP, missing auth headers on remote servers, IP-based URLs
-- Remote registry verification (`--registry`): npm/PyPI package existence, age, maintainer, and source repo checks
-- `--severity` flag to filter output by minimum severity threshold
-- `--ignore` flag to suppress specific findings by ID or title
-- `--quiet` flag for CI-friendly minimal output
-- `.mcpshieldrc` config file support for persistent defaults
-- Plugin system (`pluginRegistry`, `definePlugin`) for custom scanner rules with async support
-- SARIF 2.1.0 output for GitHub Security tab and other SAST integrations
-- `ScanContext` class for isolated, scan-scoped finding counters
-- Externalized package lists (`trusted-packages.json`, `risky-packages.json`, `suspicious-patterns.json`) for easy community updates
-- 87 tests across 9 test suites
-
-- Package published as `@ferrierepete/mcpshield` on npm
-
-[Unreleased]: https://github.com/ferrierepete/mcpshield/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/ferrierepete/mcpshield/compare/v0.1.1...v0.2.0
-[0.1.1]: https://github.com/ferrierepete/mcpshield/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/ferrierepete/mcpshield/releases/tag/v0.1.0
+### Fixed
+- `mcpServers` array format support (Continue extension)
+- `context_servers` format support (Zed editor)
+- `servers` object format support (VS Code)
+- `unknown` server type handling in pretty output

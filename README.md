@@ -52,7 +52,14 @@ npx @ferrierepete/mcpshield scan --ignore MCP-001 MCP-003
 # Quiet mode (CI-friendly one-liner output)
 npx @ferrierepete/mcpshield scan --quiet
 
+# Filter by severity (critical | high | medium | low | info)
+npx @ferrierepete/mcpshield scan -s high
+
+# Ignore findings by ID or title (partial matching supported)
+npx @ferrierepete/mcpshield scan --ignore MCP-001 Typosquat
+
 # Filter out low-confidence findings (heuristic, no API key needed)
+# Warns if all findings are filtered to zero
 npx @ferrierepete/mcpshield scan --min-confidence 0.7
 
 # AI-powered false positive reduction (BYOK — bring your own key)
@@ -103,7 +110,7 @@ Scan MCP server configurations for security issues.
 | `-f, --format <fmt>` | Output format: `pretty`, `json`, `markdown`, `sarif` |
 | `-r, --registry` | Enable remote npm/PyPI registry checks |
 | `-s, --severity <level>` | Minimum severity: `critical`, `high`, `medium`, `low`, `info` |
-| `-i, --ignore <ids...>` | Finding IDs or titles to ignore |
+| `-i, --ignore <ids...>` | Finding IDs or titles to ignore (substring matching — `--ignore typo` matches "Potential Typosquat") |
 | `-q, --quiet` | One-line summary output (ideal for CI scripts) |
 | `--min-confidence <n>` | Minimum confidence threshold (0.0–1.0) to display findings |
 | `--ai` | Enable AI-based false positive reduction (requires API key) |
@@ -155,16 +162,19 @@ MCPShield generates a 0-100 security score:
 ## OWASP MCP Top 10
 
 MCPShield maps findings to the [OWASP MCP Top 10](https://owasp.org/www-project-mcp-top/) framework:
-- MCP-01: Malicious Server Distribution
-- MCP-02: Tool Poisoning
-- MCP-03: Rug Pull Attacks
-- MCP-04: Cross-Origin Resource Sharing
-- MCP-05: Prompt Injection via Tools
-- MCP-06: Unauthorized Tool Access
-- MCP-07: Data Exfiltration
-- MCP-08: Identity Spoofing
-- MCP-09: Token/Secret Exposure
-- MCP-10: Dependency Confusion
+
+| ID | Category |
+|----|----------|
+| MCP-01 | Malicious Server Distribution |
+| MCP-02 | Tool Poisoning |
+| MCP-03 | Rug Pull Attacks |
+| MCP-04 | Cross-Origin Resource Sharing |
+| MCP-05 | Prompt Injection via Tools |
+| MCP-06 | Unauthorized Tool Access |
+| MCP-07 | Data Exfiltration |
+| MCP-08 | Identity Spoofing |
+| MCP-09 | Token/Secret Exposure |
+| MCP-10 | Dependency Confusion |
 
 ## Example Output
 
