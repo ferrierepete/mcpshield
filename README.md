@@ -2,7 +2,7 @@
 
 **Security scanner for MCP (Model Context Protocol) servers.** Detect supply chain risks, permission overreach, and misconfigurations before they compromise your system.
 
-[![npm version](https://img.shields.io/npm/v/mcpshield.svg)](https://www.npmjs.com/package/mcpshield)
+[![npm version](https://img.shields.io/npm/v/@ferrierepete/mcpshield.svg)](https://www.npmjs.com/package/@ferrierepete/mcpshield)
 
 ## Why?
 
@@ -19,51 +19,51 @@ Recent attacks include:
 ## Install
 
 ```bash
-npm install -g mcpshield
+npm install -g @ferrierepete/mcpshield
 ```
 
 ## Quick Start
 
 ```bash
 # Auto-detect and scan your MCP config
-npx mcpshield scan
+npx @ferrierepete/mcpshield scan
 
 # Scan a specific config file
-npx mcpshield scan --config ~/.config/claude/config.json
+npx @ferrierepete/mcpshield scan --config ~/.config/claude/config.json
 
 # Output as JSON (for CI/CD)
-npx mcpshield scan --format json
+npx @ferrierepete/mcpshield scan --format json
 
 # Output as Markdown
-npx mcpshield scan --format markdown
+npx @ferrierepete/mcpshield scan --format markdown
 
 # Output as SARIF (for GitHub Security tab)
-npx mcpshield scan --format sarif
+npx @ferrierepete/mcpshield scan --format sarif
 
 # Enable remote registry checks (npm/PyPI)
-npx mcpshield scan --registry
+npx @ferrierepete/mcpshield scan --registry
 
 # Filter by severity
-npx mcpshield scan --severity high
+npx @ferrierepete/mcpshield scan --severity high
 
 # Ignore specific findings
-npx mcpshield scan --ignore MCP-001 MCP-003
+npx @ferrierepete/mcpshield scan --ignore MCP-001 MCP-003
 
 # Quiet mode (CI-friendly one-liner output)
-npx mcpshield scan --quiet
+npx @ferrierepete/mcpshield scan --quiet
 
 # Auto-fix common issues
-npx mcpshield fix
-npx mcpshield fix --dry-run
+npx @ferrierepete/mcpshield fix
+npx @ferrierepete/mcpshield fix --dry-run
 
 # Watch config for changes and re-scan
-npx mcpshield watch
+npx @ferrierepete/mcpshield watch
 
 # List discovered config files
-npx mcpshield list
+npx @ferrierepete/mcpshield list
 
 # Show OWASP MCP Top 10 reference
-npx mcpshield owasp
+npx @ferrierepete/mcpshield owasp
 ```
 
 ## What It Detects
@@ -183,12 +183,12 @@ Findings: 2 critical  3 high  1 medium
 ```yaml
 # GitHub Actions — JSON output
 - name: MCP Security Scan
-  run: npx mcpshield scan --format json
+  run: npx @ferrierepete/mcpshield scan --format json
   # Exits with code 2 for critical, 1 for high findings
 
 # GitHub Actions — SARIF for Security tab
 - name: MCP Security Scan (SARIF)
-  run: npx mcpshield scan --format sarif > results.sarif
+  run: npx @ferrierepete/mcpshield scan --format sarif > results.sarif
 
 - name: Upload SARIF
   uses: github/codeql-action/upload-sarif@v3
@@ -227,7 +227,7 @@ Trusted and risky package lists are stored as JSON files in `src/data/`:
 Extend MCPShield with custom scanners via the plugin API:
 
 ```typescript
-import { pluginRegistry, definePlugin, createFinding } from 'mcpshield';
+import { pluginRegistry, definePlugin, createFinding } from '@ferrierepete/mcpshield';
 
 pluginRegistry.register(definePlugin({
   name: 'my-org-policy',
@@ -262,7 +262,7 @@ import {
   scanAllServersWithRegistry,
   loadConfig,
   autoDetectConfig,
-} from 'mcpshield';
+} from '@ferrierepete/mcpshield';
 
 // Load a config file
 const config = loadConfig('/path/to/mcp.json');
@@ -296,7 +296,7 @@ import type {
   FindingCategory,  // 'supply-chain' | 'permissions' | 'configuration' | ...
   MCPConfig,        // Parsed MCP config file shape
   MCPServerConfig,  // Individual server config
-} from 'mcpshield';
+} from '@ferrierepete/mcpshield';
 ```
 
 ## Config Locations

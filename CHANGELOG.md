@@ -30,5 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Externalized package lists (`trusted-packages.json`, `risky-packages.json`, `suspicious-patterns.json`) for easy community updates
 - 87 tests across 9 test suites
 
+- Package published as `@ferrierepete/mcpshield` on npm
+
 [Unreleased]: https://github.com/ferrierepete/mcpshield/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/ferrierepete/mcpshield/releases/tag/v0.1.0
