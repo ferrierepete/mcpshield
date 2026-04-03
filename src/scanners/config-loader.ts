@@ -117,12 +117,17 @@ export function loadConfigFromPath(configPath: string): MCPConfig | null {
   }
 }
 
-export function autoDetectConfig(): { config: MCPConfig; path: string } | null {
+export function autoDetectConfig(warnOnEnvFallback = false): { config: MCPConfig; path: string } | null {
   // Check environment variable first
   const envPath = process.env.MCP_CONFIG_PATH;
   if (envPath) {
     const config = loadConfigFromPath(envPath);
     if (config) return { config, path: envPath };
+    // env var was set but file was not loadable — warn and fall through to CONFIG_PATHS
+    if (warnOnEnvFallback) {
+      console.warn(`[mcpshield] MCP_CONFIG_PATH is set to "${envPath}" but that file could not be loaded. ` +
+        `Falling back to auto-detection.`);
+    }
   }
 
   // Scan known locations

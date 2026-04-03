@@ -9,10 +9,11 @@ import { ScanResult, OWASP_MCP_TOP_CATEGORIES, Severity } from './types/index.js
 import { toSarif } from './formatters/sarif.js';
 import { loadMCPShieldConfig, severityMeetsThreshold } from './config/index.js';
 import { applyFixes, getAvailableFixes, writeConfig } from './fix/index.js';
+import * as fs from 'fs';
 import { watch } from 'fs';
 import { resolveAIConfig, evaluateWithAI, applyAIEvaluations, filterByConfidence } from './ai/index.js';
 
-const VERSION = '0.1.1';
+const VERSION = '0.2.0';
 
 const program = new Command();
 
@@ -59,7 +60,7 @@ program
         process.exit(1);
       }
     } else {
-      const auto = autoDetectConfig();
+      const auto = autoDetectConfig(true);
       if (!auto) {
         console.error(chalk.red('Error: No MCP configuration found.'));
         console.error(chalk.dim('Searched: Claude Desktop, VS Code, Cursor, .mcp/ directories'));
@@ -125,8 +126,16 @@ program
     // Apply confidence threshold filter
     const minConfidence = opts.minConfidence ?? shieldConfig.minConfidence;
     if (minConfidence !== undefined && minConfidence > 0) {
+      const totalBefore = result.servers.flatMap(s => s.findings).length;
       for (const server of result.servers) {
         server.findings = filterByConfidence(server.findings, minConfidence);
+      }
+      const totalAfter = result.servers.flatMap(s => s.findings).length;
+      if (totalAfter === 0 && totalBefore > 0) {
+        console.warn(chalk.yellow(
+          `[mcpshield] --min-confidence ${minConfidence} filtered all ${totalBefore} finding(s). ` +
+          `No findings will be displayed.`
+        ));
       }
     }
 
@@ -196,7 +205,7 @@ program
         process.exit(1);
       }
     } else {
-      const auto = autoDetectConfig();
+      const auto = autoDetectConfig(true);
       if (!auto) {
         console.error(chalk.red('Error: No MCP configuration found.'));
         process.exit(1);
@@ -209,11 +218,6 @@ program
     const result = scanAllServers(config.mcpServers, configPath);
     const allFindings = result.servers.flatMap(s => s.findings);
     const available = getAvailableFixes(allFindings);
-
-    if (available.length === 0) {
-      console.log(chalk.green('\n✅ No auto-fixable issues found.\n'));
-      return;
-    }
 
     console.log(chalk.bold.cyan('\n🔧 MCPShield Auto-Fix\n'));
     console.log(chalk.dim(`Config: ${configPath}\n`));
@@ -229,12 +233,18 @@ program
 
     if (opts.dryRun) {
       console.log(chalk.dim('\n(Dry run — no changes written)'));
-      console.log(chalk.dim('\nFixed config preview:'));
-      console.log(JSON.stringify(fixedConfig, null, 2));
+      if (fixResult.applied.length > 0 || fixResult.skipped.length > 0) {
+        console.log(chalk.dim('\nFixed config preview:'));
+        console.log(JSON.stringify(fixedConfig, null, 2));
+      } else {
+        console.log(chalk.green('✅ No auto-fixable issues found.'));
+      }
     } else if (fixResult.applied.length > 0) {
       writeConfig(configPath, fixedConfig);
       console.log(chalk.green(`\n✅ Applied ${fixResult.applied.length} fix(es) to ${configPath}`));
       console.log(chalk.dim(`   Backup saved to: ${configPath}.bak`));
+    } else {
+      console.log(chalk.green('\n✅ No auto-fixable issues found.\n'));
     }
     console.log();
   });
@@ -250,7 +260,7 @@ program
     if (opts.config) {
       configPath = opts.config;
     } else {
-      const auto = autoDetectConfig();
+      const auto = autoDetectConfig(true);
       if (!auto) {
         console.error(chalk.red('Error: No MCP configuration found.'));
         process.exit(1);
@@ -262,7 +272,12 @@ program
     console.log(chalk.dim(`Watching: ${configPath}\n`));
     console.log(chalk.dim('Press Ctrl+C to stop.\n'));
 
-    // Initial scan
+    // Validate file exists before entering watch mode
+    if (!fs.existsSync(configPath)) {
+      console.error(chalk.red(`Error: Config file not found: ${configPath}`));
+      process.exit(1);
+    }
+
     runWatchScan(configPath, opts.format);
 
     // Watch for changes
@@ -296,8 +311,10 @@ function applyFilters(result: ScanResult, threshold: Severity, ignoreList: strin
   const filteredServers = result.servers.map(server => {
     const filteredFindings = server.findings.filter(f => {
       if (!severityMeetsThreshold(f.severity, threshold)) return false;
-      if (ignoreLower.includes(f.id.toLowerCase())) return false;
-      if (ignoreLower.includes(f.title.toLowerCase())) return false;
+      // Partial substring match: ignore value appears anywhere in ID or title
+      const idLower = f.id.toLowerCase();
+      const titleLower = f.title.toLowerCase();
+      if (ignoreLower.some(ig => idLower.includes(ig) || titleLower.includes(ig))) return false;
       return true;
     });
     return { ...server, findings: filteredFindings };
