@@ -83,10 +83,34 @@ export function loadConfig(configPath: string): MCPConfig {
   return { mcpServers: {} };
 }
 
+/**
+ * Resolve a user-supplied config path and verify it stays within a safe directory.
+ * Prevents path traversal attacks via MCP_CONFIG_PATH (e.g. /etc/passwd, ../../.ssh/id_rsa).
+ *
+ * Safe directories: cwd and the user's home directory tree.
+ */
+export function resolveSafeConfigPath(configPath: string): string | null {
+  const resolved = path.resolve(configPath);
+  const cwd = path.resolve(process.cwd());
+  const home = path.resolve(os.homedir());
+
+  // SECURITY: Walk up from the resolved path. If we never land on cwd or home,
+  // the path has escaped both safe roots and is a traversal attempt.
+  let current = resolved;
+  while (true) {
+    if (current === cwd || current === home) return resolved;
+    const parent = path.dirname(current);
+    if (parent === current) break; // reached root of filesystem
+    current = parent;
+  }
+  // Never hit cwd or home — traversal detected
+  return null;
+}
+
 export function loadConfigFromPath(configPath: string): MCPConfig | null {
   try {
-    const resolved = path.resolve(configPath);
-    if (!fs.existsSync(resolved)) return null;
+    const resolved = resolveSafeConfigPath(configPath);
+    if (!resolved || !fs.existsSync(resolved)) return null;
     return loadConfig(resolved);
   } catch {
     return null;

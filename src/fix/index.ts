@@ -50,7 +50,11 @@ const FIX_ACTIONS: FixAction[] = [
         if (sensitiveKeys.some(s => key.toUpperCase().includes(s))) {
           // Sanitize key to prevent command injection: only allow alphanumeric and underscore
           const safeKey = key.replace(/[^a-zA-Z0-9_]/g, '_');
-          updated.mcpServers[serverName].env![key] = `\${${safeKey}}`;
+          // SECURITY: Delete the original dangerous key and replace with safe env var name.
+          // Simply updating the value is insufficient — the dangerous key name must be removed
+          // so that shell expansion like ${AWS_SECRET_ACCESS_KEY$(cat)} is not possible.
+          delete updated.mcpServers[serverName].env![key];
+          updated.mcpServers[serverName].env![safeKey] = `\${${safeKey}}`;
         }
       }
       return updated;

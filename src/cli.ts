@@ -104,9 +104,18 @@ program
           for (const server of result.servers) {
             server.findings = applyAIEvaluations(server.findings, aiResult.evaluations);
           }
-          if (aiSpinner) aiSpinner.succeed(
-            `AI evaluation complete (${aiResult.model}, ${aiResult.evaluations.length} findings evaluated)`
-          );
+          if (aiSpinner) {
+            if (aiResult.parseErrorCount > 0) {
+              aiSpinner.warn(
+                `AI evaluation complete (${aiResult.model}, ${aiResult.evaluations.length} evaluated, ` +
+                `${aiResult.parseErrorCount} response(s) could not be parsed — see findings marked [AI: needs review])`
+              );
+            } else {
+              aiSpinner.succeed(
+                `AI evaluation complete (${aiResult.model}, ${aiResult.evaluations.length} findings evaluated)`
+              );
+            }
+          }
         }
       } catch (e: any) {
         if (aiSpinner) aiSpinner.fail(`AI evaluation failed: ${e.message}`);

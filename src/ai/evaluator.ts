@@ -6,12 +6,19 @@ export interface AIEvaluation {
   verdict: AIVerdict;
   confidence: number;
   reasoning: string;
+  /** Set to true when the AI returned a response that could not be parsed.
+   *  Distinguishes 'needs-review because AI explicitly said so' from
+   *  'needs-review because the AI response was unparseable garbage.' */
+  aiParseError?: boolean;
 }
 
 export interface AIEvaluationResult {
   evaluations: AIEvaluation[];
   model: string;
   usage?: { promptTokens: number; completionTokens: number };
+  /** Count of evaluations that could not be parsed from the AI response.
+   *  If > 0, the AI provider returned malformed output for those findings. */
+  parseErrorCount: number;
 }
 
 const SYSTEM_PROMPT = `You are a security expert specializing in MCP (Model Context Protocol) server configurations. Your job is to evaluate security findings and determine whether each is a true positive or a false positive.
@@ -101,7 +108,7 @@ export async function evaluateWithAI(
   aiConfig: AIConfig
 ): Promise<AIEvaluationResult> {
   if (findings.length === 0) {
-    return { evaluations: [], model: aiConfig.model || 'none' };
+    return { evaluations: [], model: aiConfig.model || 'none', parseErrorCount: 0 };
   }
 
   const provider = createProvider(aiConfig);
@@ -131,18 +138,23 @@ export async function evaluateWithAI(
     try {
       const evaluations = parseAIResponse(response.content);
       allEvaluations.push(...evaluations);
-    } catch {
-      // If parsing fails for a batch, mark all as needs-review
+    } catch (e: unknown) {
+      // If parsing fails for a batch, mark all as needs-review AND set the
+      // parse-error flag so the CLI can surface a warning to the user.
+      const errorDetail = e instanceof Error ? e.message : String(e);
       for (const f of batch) {
         allEvaluations.push({
           findingId: f.id,
           verdict: 'needs-review',
           confidence: 0.5,
-          reasoning: 'AI response could not be parsed',
+          reasoning: `AI response could not be parsed: ${errorDetail}`,
+          aiParseError: true,
         });
       }
     }
   }
+
+  const parseErrorCount = allEvaluations.filter(e => e.aiParseError).length;
 
   return {
     evaluations: allEvaluations,
@@ -151,6 +163,7 @@ export async function evaluateWithAI(
       promptTokens: totalPromptTokens,
       completionTokens: totalCompletionTokens,
     } : undefined,
+    parseErrorCount,
   };
 }
 
