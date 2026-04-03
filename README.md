@@ -37,6 +37,25 @@ npx mcpshield scan --format json
 # Output as Markdown
 npx mcpshield scan --format markdown
 
+# Output as SARIF (for GitHub Security tab)
+npx mcpshield scan --format sarif
+
+# Enable remote registry checks (npm/PyPI)
+npx mcpshield scan --registry
+
+# Filter by severity
+npx mcpshield scan --severity high
+
+# Ignore specific findings
+npx mcpshield scan --ignore MCP-001 MCP-003
+
+# Auto-fix common issues
+npx mcpshield fix
+npx mcpshield fix --dry-run
+
+# Watch config for changes and re-scan
+npx mcpshield watch
+
 # List discovered config files
 npx mcpshield list
 
@@ -49,11 +68,62 @@ npx mcpshield owasp
 | Category | Checks |
 |----------|--------|
 | **Supply Chain** | Unpinned versions, unverified packages, known risky packages, typosquats |
-| **Permissions** | Broad filesystem access, sensitive working directories |
+| **Registry** | Package existence on npm/PyPI, recently published packages, single-version packages, missing source repos *(with `--registry`)* |
+| **Permissions** | Broad filesystem access, sensitive working directories, overly permissive runtime flags |
 | **Secrets** | Hardcoded API keys, tokens in plaintext config |
-| **Configuration** | Missing commands, shell injection patterns, dangerous runtime flags |
-| **Network** | Binding to 0.0.0.0, suspicious URLs (pastebin, webhook.site, etc.) |
+| **Configuration** | Missing commands, shell injection patterns, dangerous runtime flags, eval/exec patterns |
+| **Network** | Binding to 0.0.0.0, suspicious URLs (pastebin, webhook.site, etc.), IP-based server URLs |
+| **Docker** | `--privileged` flag, sensitive volume mounts, Docker socket exposure, unpinned image tags, exposed ports |
+| **HTTP/SSE Transport** | Insecure HTTP connections, missing authentication headers on remote servers |
 | **Threats** | Typosquatting, obfuscated values, data exfiltration indicators |
+
+## Commands
+
+### `mcpshield scan`
+
+Scan MCP server configurations for security issues.
+
+| Flag | Description |
+|------|-------------|
+| `-c, --config <path>` | Path to MCP config file |
+| `-f, --format <fmt>` | Output format: `pretty`, `json`, `markdown`, `sarif` |
+| `-r, --registry` | Enable remote npm/PyPI registry checks |
+| `-s, --severity <level>` | Minimum severity: `critical`, `high`, `medium`, `low`, `info` |
+| `-i, --ignore <ids...>` | Finding IDs or titles to ignore |
+| `--no-spinner` | Disable progress spinner |
+
+### `mcpshield fix`
+
+Auto-fix common security issues in your MCP config.
+
+| Flag | Description |
+|------|-------------|
+| `-c, --config <path>` | Path to MCP config file |
+| `--dry-run` | Preview fixes without writing changes |
+
+Supported auto-fixes:
+- **Pin package versions** — appends `@latest` to unpinned packages
+- **Replace hardcoded secrets** — substitutes with `${VAR_NAME}` references
+- **Bind to localhost** — replaces `0.0.0.0` with `127.0.0.1`
+- **Upgrade to HTTPS** — replaces `http://` with `https://` for remote URLs
+- **Remove empty env vars** — cleans up empty or wildcard environment variables
+
+### `mcpshield watch`
+
+Watch your MCP config file and re-scan automatically on every change.
+
+| Flag | Description |
+|------|-------------|
+| `-c, --config <path>` | Path to MCP config file |
+| `-f, --format <fmt>` | Output format: `pretty`, `json`, `markdown`, `sarif` |
+
+### `mcpshield list`
+
+List all discovered MCP configuration files on your system.
+
+### `mcpshield owasp`
+
+Display the OWASP MCP Top 10 security framework reference.
 
 ## Security Score
 
@@ -107,11 +177,76 @@ Findings: 2 critical  3 high  1 medium
 ## CI/CD Integration
 
 ```yaml
-# GitHub Actions
+# GitHub Actions — JSON output
 - name: MCP Security Scan
   run: npx mcpshield scan --format json
   # Exits with code 2 for critical, 1 for high findings
+
+# GitHub Actions — SARIF for Security tab
+- name: MCP Security Scan (SARIF)
+  run: npx mcpshield scan --format sarif > results.sarif
+
+- name: Upload SARIF
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: results.sarif
 ```
+
+## Configuration
+
+### `.mcpshieldrc`
+
+Create a `.mcpshieldrc`, `.mcpshieldrc.json`, or `.mcpshield.json` file in your project root or home directory to set defaults:
+
+```json
+{
+  "severityThreshold": "medium",
+  "ignore": ["MCP-001"],
+  "format": "pretty",
+  "registry": false,
+  "trustedPackages": ["@myorg/custom-mcp-server"],
+  "riskyPackages": ["some-known-bad-package"]
+}
+```
+
+MCPShield searches for this file in the current directory first, then the home directory.
+
+### Customizing Package Lists
+
+Trusted and risky package lists are stored as JSON files in `src/data/`:
+- `trusted-packages.json` — packages verified as legitimate
+- `risky-packages.json` — packages known to be malicious or suspicious
+- `suspicious-patterns.json` — URL patterns and typosquat regexes
+
+## Plugin System
+
+Extend MCPShield with custom scanners via the plugin API:
+
+```typescript
+import { pluginRegistry, definePlugin, createFinding } from 'mcpshield';
+
+pluginRegistry.register(definePlugin({
+  name: 'my-org-policy',
+  description: 'Enforce internal security policies',
+  scan: (serverName, config) => {
+    const findings = [];
+    // Your custom checks here
+    if (!config.env?.AUDIT_LOG) {
+      findings.push(createFinding({
+        title: 'Missing Audit Log',
+        description: 'Internal policy requires AUDIT_LOG env var.',
+        severity: 'medium',
+        category: 'configuration',
+        serverName,
+        remediation: 'Add AUDIT_LOG=true to the server environment.',
+      }));
+    }
+    return findings;
+  },
+}));
+```
+
+Plugins support both sync and async scanners, and errors in plugins are isolated — a crashing plugin won't affect the rest of the scan.
 
 ## Config Locations
 
