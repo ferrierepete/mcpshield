@@ -25,6 +25,8 @@ export interface MCPServerConfig {
   env?: Record<string, string>;
   cwd?: string;
   disabled?: boolean;
+  url?: string;
+  headers?: Record<string, string>;
 }
 
 export interface MCPConfig {

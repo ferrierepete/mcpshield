@@ -44,8 +44,10 @@ export function scanThreats(name: string, config: MCPServerConfig): Finding[] {
     }
   }
 
-  // Check for suspicious URLs in arguments or env
-  const allText = `${args} ${Object.values(env).join(' ')}`;
+  // Check for suspicious URLs in arguments, env, or url field
+  const urlField = config.url || '';
+  const headerValues = config.headers ? Object.values(config.headers).join(' ') : '';
+  const allText = `${args} ${Object.values(env).join(' ')} ${urlField} ${headerValues}`;
   for (const pattern of SUSPICIOUS_URL_PATTERNS) {
     if (pattern.test(allText)) {
       findings.push(createFinding({
