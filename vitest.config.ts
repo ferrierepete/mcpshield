@@ -12,6 +12,9 @@ export default defineConfig({
         'tests/**',
         'eslint.config.js',
         'vitest.config.ts',
+        'src/cli.ts',
+        'src/index.ts',
+        'src/types/**',
       ],
       thresholds: {
         lines: 70,
