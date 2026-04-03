@@ -16,6 +16,16 @@ export interface MCPShieldConfig {
   trustedPackages?: string[];
   /** Additional risky packages */
   riskyPackages?: string[];
+  /** Enable AI-based false positive reduction */
+  ai?: boolean;
+  /** AI provider: openai, anthropic, gemini */
+  aiProvider?: string;
+  /** AI model override */
+  aiModel?: string;
+  /** Custom base URL for OpenAI-compatible providers */
+  aiBaseUrl?: string;
+  /** Minimum confidence threshold (0.0–1.0) to display findings */
+  minConfidence?: number;
 }
 
 const CONFIG_FILENAMES = [

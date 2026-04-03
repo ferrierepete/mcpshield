@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-03
+
+### Added
+- **AI-powered false positive reduction** — opt-in LLM evaluation of findings with `--ai` flag
+- **BYOK (Bring Your Own Key)** support for OpenAI, Anthropic Claude, and Google Gemini
+- **OpenAI-compatible endpoint support** — works with Groq, Together AI, Ollama via `--ai-base-url`
+- **Heuristic confidence scoring** — every finding now gets a confidence score (0.0–1.0) based on 20+ contextual rules
+- `--min-confidence <n>` flag to filter out low-confidence findings (no API key needed)
+- `--ai-provider`, `--ai-model`, `--ai-base-url` CLI flags
+- AI settings in `.mcpshieldrc`: `ai`, `aiProvider`, `aiModel`, `aiBaseUrl`, `minConfidence`
+- Environment variable support: `MCPSHIELD_AI_PROVIDER`, `MCPSHIELD_OPENAI_API_KEY`, `MCPSHIELD_ANTHROPIC_API_KEY`, `MCPSHIELD_GEMINI_API_KEY`, `MCPSHIELD_AI_BASE_URL`
+- Security: env var values are never sent to AI providers — only key names are included in prompts
+- Batched AI evaluation for large finding sets (max 20 per request)
+- Confidence and AI verdict display in pretty output (`(confidence: 85%)`, `[AI: confirmed]`)
+- 52 new tests for confidence scoring and AI evaluation (142 total across 11 suites)
+- `Finding` type now includes optional `confidence` and `aiVerdict` fields
+- New public API exports: `computeConfidence`, `applyConfidenceScores`, `filterByConfidence`, `resolveAIConfig`, `createProvider`, `evaluateWithAI`, `applyAIEvaluations`
+
 ## [0.1.1] - 2026-04-03
 
 ### Fixed
@@ -48,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Package published as `@ferrierepete/mcpshield` on npm
 
-[Unreleased]: https://github.com/ferrierepete/mcpshield/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/ferrierepete/mcpshield/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/ferrierepete/mcpshield/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/ferrierepete/mcpshield/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ferrierepete/mcpshield/releases/tag/v0.1.0

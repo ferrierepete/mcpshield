@@ -10,6 +10,7 @@ import { toSarif } from './formatters/sarif.js';
 import { loadMCPShieldConfig, severityMeetsThreshold } from './config/index.js';
 import { applyFixes, getAvailableFixes, writeConfig } from './fix/index.js';
 import { watch } from 'fs';
+import { resolveAIConfig, evaluateWithAI, applyAIEvaluations, filterByConfidence } from './ai/index.js';
 
 const VERSION = '0.1.1';
 
@@ -30,6 +31,11 @@ program
   .option('-s, --severity <level>', 'Minimum severity threshold to display: critical, high, medium, low, info')
   .option('-i, --ignore <ids...>', 'Finding IDs or titles to ignore (space-separated)')
   .option('-q, --quiet', 'Only print the summary line and findings count (no per-server details)')
+  .option('--ai', 'Enable AI-based false positive reduction (requires API key)')
+  .option('--ai-provider <provider>', 'AI provider: openai, anthropic, gemini')
+  .option('--ai-model <model>', 'AI model to use (overrides default)')
+  .option('--ai-base-url <url>', 'Custom base URL for OpenAI-compatible endpoints')
+  .option('--min-confidence <n>', 'Minimum confidence threshold (0.0–1.0) to display findings', parseFloat)
   .action(async (opts) => {
     // Load MCPShield's own config (.mcpshieldrc)
     const shieldConfig = loadMCPShieldConfig();
@@ -80,6 +86,40 @@ program
       : scanAllServers(config.mcpServers, configPath);
 
     if (spinner) spinner.stop();
+
+    // AI evaluation (opt-in)
+    const useAI = opts.ai || shieldConfig.ai || false;
+    if (useAI) {
+      const aiSpinner = opts.spinner !== false ? ora('Evaluating findings with AI...').start() : null;
+      try {
+        const aiConfig = resolveAIConfig({
+          provider: opts.aiProvider || shieldConfig.aiProvider,
+          model: opts.aiModel || shieldConfig.aiModel,
+          baseUrl: opts.aiBaseUrl || shieldConfig.aiBaseUrl,
+        });
+        if (aiConfig) {
+          const allFindings = result.servers.flatMap(s => s.findings);
+          const aiResult = await evaluateWithAI(allFindings, config.mcpServers, aiConfig);
+          // Apply AI verdicts back to findings
+          for (const server of result.servers) {
+            server.findings = applyAIEvaluations(server.findings, aiResult.evaluations);
+          }
+          if (aiSpinner) aiSpinner.succeed(
+            `AI evaluation complete (${aiResult.model}, ${aiResult.evaluations.length} findings evaluated)`
+          );
+        }
+      } catch (e: any) {
+        if (aiSpinner) aiSpinner.fail(`AI evaluation failed: ${e.message}`);
+      }
+    }
+
+    // Apply confidence threshold filter
+    const minConfidence = opts.minConfidence ?? shieldConfig.minConfidence;
+    if (minConfidence !== undefined && minConfidence > 0) {
+      for (const server of result.servers) {
+        server.findings = filterByConfidence(server.findings, minConfidence);
+      }
+    }
 
     // Apply severity threshold and ignore filters
     const filtered = applyFilters(result, severityThreshold, ignoreList);
@@ -312,7 +352,15 @@ function printPretty(configPath: string, result: ScanResult) {
 
     for (const f of server.findings) {
       console.log();
-      console.log(`   ${severityIcon(f.severity)} ${chalk.bold(f.title)} ${chalk.dim(`[${f.id}]`)}`);
+      const confidenceStr = f.confidence !== undefined
+        ? ` ${chalk.dim(`(confidence: ${Math.round(f.confidence * 100)}%)`)}`
+        : '';
+      const verdictStr = f.aiVerdict
+        ? f.aiVerdict === 'confirmed' ? chalk.red(' [AI: confirmed]')
+          : f.aiVerdict === 'likely-false-positive' ? chalk.yellow(' [AI: likely FP]')
+          : chalk.gray(' [AI: needs review]')
+        : '';
+      console.log(`   ${severityIcon(f.severity)} ${chalk.bold(f.title)} ${chalk.dim(`[${f.id}]`)}${confidenceStr}${verdictStr}`);
       console.log(`   ${chalk.dim(f.description)}`);
       console.log(`   ${chalk.cyan('→ Fix:')} ${f.remediation}`);
       if (f.references?.length) {

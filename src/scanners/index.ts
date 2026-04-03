@@ -7,6 +7,7 @@ import { scanThreats } from './threats.js';
 import { scanTransport } from './transport.js';
 import { scanRegistry } from './registry.js';
 import { pluginRegistry } from '../plugins/index.js';
+import { computeConfidence } from '../ai/confidence.js';
 
 export function scanServer(name: string, config: MCPServerConfig): ServerScanResult {
   const findings: Finding[] = [
@@ -15,7 +16,7 @@ export function scanServer(name: string, config: MCPServerConfig): ServerScanRes
     ...scanPermissions(name, config),
     ...scanThreats(name, config),
     ...scanTransport(name, config),
-  ];
+  ].map(f => ({ ...f, confidence: computeConfidence(f, config) }));
 
   return {
     name,

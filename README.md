@@ -52,6 +52,17 @@ npx @ferrierepete/mcpshield scan --ignore MCP-001 MCP-003
 # Quiet mode (CI-friendly one-liner output)
 npx @ferrierepete/mcpshield scan --quiet
 
+# Filter out low-confidence findings (heuristic, no API key needed)
+npx @ferrierepete/mcpshield scan --min-confidence 0.7
+
+# AI-powered false positive reduction (BYOK — bring your own key)
+npx @ferrierepete/mcpshield scan --ai --ai-provider openai
+npx @ferrierepete/mcpshield scan --ai --ai-provider anthropic
+npx @ferrierepete/mcpshield scan --ai --ai-provider gemini
+
+# Use a custom OpenAI-compatible endpoint (Groq, Together, Ollama, etc.)
+npx @ferrierepete/mcpshield scan --ai --ai-provider openai --ai-base-url http://localhost:11434/v1
+
 # Auto-fix common issues
 npx @ferrierepete/mcpshield fix
 npx @ferrierepete/mcpshield fix --dry-run
@@ -94,6 +105,11 @@ Scan MCP server configurations for security issues.
 | `-s, --severity <level>` | Minimum severity: `critical`, `high`, `medium`, `low`, `info` |
 | `-i, --ignore <ids...>` | Finding IDs or titles to ignore |
 | `-q, --quiet` | One-line summary output (ideal for CI scripts) |
+| `--min-confidence <n>` | Minimum confidence threshold (0.0–1.0) to display findings |
+| `--ai` | Enable AI-based false positive reduction (requires API key) |
+| `--ai-provider <name>` | AI provider: `openai`, `anthropic`, `gemini` |
+| `--ai-model <model>` | Override the default AI model |
+| `--ai-base-url <url>` | Custom base URL for OpenAI-compatible endpoints |
 | `--no-spinner` | Disable progress spinner |
 
 ### `mcpshield fix`
@@ -209,7 +225,11 @@ Create a `.mcpshieldrc`, `.mcpshieldrc.json`, or `.mcpshield.json` file in your 
   "format": "pretty",
   "registry": false,
   "trustedPackages": ["@myorg/custom-mcp-server"],
-  "riskyPackages": ["some-known-bad-package"]
+  "riskyPackages": ["some-known-bad-package"],
+  "ai": true,
+  "aiProvider": "openai",
+  "aiModel": "gpt-4o-mini",
+  "minConfidence": 0.6
 }
 ```
 
@@ -221,6 +241,47 @@ Trusted and risky package lists are stored as JSON files in `src/data/`:
 - `trusted-packages.json` — packages verified as legitimate
 - `risky-packages.json` — packages known to be malicious or suspicious
 - `suspicious-patterns.json` — URL patterns and typosquat regexes
+
+## AI False Positive Reduction
+
+MCPShield uses a two-layer system to reduce false positives:
+
+### Layer 1: Heuristic Confidence Scoring (always on, no API key)
+
+Every finding gets a **confidence score** (0.0–1.0) based on contextual rules:
+- Trusted packages flagged as unpinned → lower confidence
+- Localhost HTTP connections → lower confidence
+- Env vars using `${VAR}` references → lower confidence
+- Private IP addresses → lower confidence
+- `--privileged` Docker flag → higher confidence
+- Known risky packages / typosquats → higher confidence
+
+Use `--min-confidence 0.7` to filter out low-confidence findings.
+
+### Layer 2: AI Evaluation (opt-in, BYOK)
+
+Pass `--ai` to send findings to an LLM for contextual evaluation. Each finding receives a verdict:
+- **confirmed** — real security risk
+- **likely-false-positive** — probably safe in this context
+- **needs-review** — human should verify
+
+**Supported providers:**
+
+| Provider | Flag | Env Var(s) | Default Model |
+|----------|------|-----------|---------------|
+| **OpenAI** | `--ai-provider openai` | `OPENAI_API_KEY` or `MCPSHIELD_OPENAI_API_KEY` | `gpt-4o-mini` |
+| **Anthropic** | `--ai-provider anthropic` | `ANTHROPIC_API_KEY` or `MCPSHIELD_ANTHROPIC_API_KEY` | `claude-sonnet-4-20250514` |
+| **Google Gemini** | `--ai-provider gemini` | `GEMINI_API_KEY`, `GOOGLE_API_KEY`, or `MCPSHIELD_GEMINI_API_KEY` | `gemini-2.0-flash` |
+| **OpenAI-compatible** | `--ai-provider openai --ai-base-url <url>` | Same as OpenAI | — |
+
+Works with **Groq, Together AI, Ollama**, and any OpenAI-compatible endpoint via `--ai-base-url`.
+
+**Additional env vars:**
+- `MCPSHIELD_AI_MODEL` — override the default model for any provider
+- `MCPSHIELD_AI_BASE_URL` — set a custom OpenAI-compatible endpoint
+- `MCPSHIELD_AI_PROVIDER` — set the default provider without `--ai-provider` flag
+
+**Security note:** MCPShield never sends your secrets to the AI. Only env var *keys* (not values) are included in the prompt.
 
 ## Plugin System
 

@@ -9,6 +9,19 @@ export interface Finding {
   serverName: string;
   remediation: string;
   references?: string[];
+  confidence?: number; // 0.0–1.0, set by heuristic or AI evaluation
+  aiVerdict?: AIVerdict;
+}
+
+export type AIVerdict = 'confirmed' | 'likely-false-positive' | 'needs-review';
+
+export type AIProviderType = 'openai' | 'anthropic' | 'gemini';
+
+export interface AIConfig {
+  provider: AIProviderType;
+  apiKey: string;
+  model?: string;
+  baseUrl?: string; // for OpenAI-compatible endpoints (Groq, Together, Ollama, etc.)
 }
 
 export type FindingCategory =
