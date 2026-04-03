@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { autoDetectConfig, discoverConfigs, loadConfig } from './scanners/config-loader.js';
 import { scanAllServers, scanAllServersWithRegistry } from './scanners/index.js';
-import { severityIcon, scoreColor } from './utils/helpers.js';
+import { severityIcon } from './utils/helpers.js';
 import { ScanResult, OWASP_MCP_TOP_CATEGORIES, Severity } from './types/index.js';
 import { toSarif } from './formatters/sarif.js';
 import { loadMCPShieldConfig, severityMeetsThreshold } from './config/index.js';

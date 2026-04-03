@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { loadConfig, getServerType, discoverConfigs } from '../src/scanners/config-loader.js';
 import * as path from 'path';
+import { writeFileSync, unlinkSync } from 'fs';
 
 const FIXTURE_DIR = path.join(__dirname, 'fixtures');
 
@@ -29,11 +30,10 @@ describe('Config Loader', () => {
     });
 
     it('should throw on malformed JSON', () => {
-      const fs = require('fs');
       const tmpPath = '/tmp/mcpshield-malformed-test.json';
-      fs.writeFileSync(tmpPath, '{ invalid json }', 'utf-8');
+      writeFileSync(tmpPath, '{ invalid json }', 'utf-8');
       expect(() => loadConfig(tmpPath)).toThrow();
-      fs.unlinkSync(tmpPath);
+      unlinkSync(tmpPath);
     });
   });
 

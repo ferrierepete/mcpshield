@@ -1,5 +1,5 @@
 import { MCPServerConfig, ScanResult, ServerScanResult, Finding } from '../types/index.js';
-import { ScanContext, resetCounter, calculateScore } from '../utils/helpers.js';
+import { resetCounter, calculateScore } from '../utils/helpers.js';
 import { scanSupplyChain } from './supply-chain.js';
 import { scanPermissions } from './permissions.js';
 import { scanConfiguration } from './configuration.js';

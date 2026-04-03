@@ -15,9 +15,6 @@ const SENSITIVE_ENV_KEYS = [
   'STRIPE_SECRET_KEY', 'SLACK_TOKEN',
 ];
 
-const WILDCARD_URLS = [
-  '*', '0.0.0.0', '::',
-];
 
 export function scanPermissions(name: string, config: MCPServerConfig): Finding[] {
   const findings: Finding[] = [];

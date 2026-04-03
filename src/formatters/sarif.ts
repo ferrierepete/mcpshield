@@ -1,4 +1,4 @@
-import { ScanResult, Finding, Severity } from '../types/index.js';
+import { ScanResult, Severity } from '../types/index.js';
 
 interface SarifLog {
   $schema: string;
