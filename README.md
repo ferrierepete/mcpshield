@@ -301,14 +301,25 @@ import type {
 
 ## Config Locations
 
-MCPShield auto-discovers configs from:
-- `~/Library/Application Support/Claude/claude_desktop_config.json`
-- `~/.config/claude/config.json`
-- `~/.vscode/mcp.json`
-- `~/.cursor/mcp.json`
-- `~/.mcp/config.json`
-- `./mcp.json` (current directory)
-- `MCP_CONFIG_PATH` environment variable
+MCPShield auto-discovers configs from all major MCP clients:
+
+| Client | Scope | Path |
+|--------|-------|------|
+| **Claude Desktop** | macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| **Claude Desktop** | Linux | `~/.config/Claude/claude_desktop_config.json` |
+| **Claude Desktop** | Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+| **Claude Code** | User/Local | `~/.claude.json` |
+| **Claude Code** | Project | `.mcp.json` |
+| **Claude Code** | Local | `.claude/settings.local.json` |
+| **VS Code** | Workspace | `.vscode/mcp.json` |
+| **Cursor** | Global | `~/.cursor/mcp.json` |
+| **Cursor** | Project | `.cursor/mcp.json` |
+| **Windsurf** | Global | `~/.codeium/windsurf/mcp_config.json` |
+| **Continue** | Global | `~/.continue/config.json` |
+| **Zed** | Global | `~/.config/zed/settings.json` |
+| **Custom** | — | `MCP_CONFIG_PATH` environment variable |
+
+MCPShield handles the different config formats automatically — `mcpServers` (object), `servers` (VS Code), `context_servers` (Zed), and array-based `mcpServers` (Continue).
 
 ## License
 

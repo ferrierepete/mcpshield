@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-04-03
+
+### Fixed
+- Corrected MCP config file discovery paths for all supported clients
+- Added missing paths: Claude Code (`~/.claude.json`, `.mcp.json`, `.claude/settings.local.json`), Windsurf (`~/.codeium/windsurf/mcp_config.json`), Continue (`~/.continue/config.json`), Zed (`~/.config/zed/settings.json`)
+- Fixed Claude Desktop Linux path (`~/.config/Claude/` not `~/.config/claude/`)
+- Added Windows `%APPDATA%` path for Claude Desktop
+- Added Cursor project-scope path (`.cursor/mcp.json`)
+- Fixed VS Code path to workspace-level `.vscode/mcp.json` (was incorrectly `~/.vscode/mcp.json`)
+- Removed non-existent paths (`~/.mcp/config.json`, `./mcp.json`)
+
+### Added
+- Config format auto-detection: Zed `context_servers` format, Continue array-based `mcpServers`, VS Code `servers` key
+- 3 new test fixtures and test cases for Continue, Zed, and VS Code config formats
+- 90 tests across 9 test suites (was 87)
+
 ## [0.1.0] - 2026-04-03
 
 ### Added
@@ -32,5 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Package published as `@ferrierepete/mcpshield` on npm
 
-[Unreleased]: https://github.com/ferrierepete/mcpshield/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/ferrierepete/mcpshield/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/ferrierepete/mcpshield/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ferrierepete/mcpshield/releases/tag/v0.1.0

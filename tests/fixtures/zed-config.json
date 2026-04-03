@@ -1,0 +1,19 @@
+{
+  "context_servers": {
+    "github": {
+      "command": {
+        "path": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-github"],
+        "env": {
+          "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_test123"
+        }
+      }
+    },
+    "filesystem": {
+      "command": {
+        "path": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/"]
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "mcpServers": [
+    {
+      "name": "github",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_test123"
+      }
+    },
+    {
+      "name": "supabase",
+      "url": "https://mcp.supabase.com/sse"
+    }
+  ]
+}

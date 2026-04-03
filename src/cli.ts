@@ -11,7 +11,7 @@ import { loadMCPShieldConfig, severityMeetsThreshold } from './config/index.js';
 import { applyFixes, getAvailableFixes, writeConfig } from './fix/index.js';
 import { watch } from 'fs';
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 
 const program = new Command();
 

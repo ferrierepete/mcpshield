@@ -35,6 +35,31 @@ describe('Config Loader', () => {
       expect(() => loadConfig(tmpPath)).toThrow();
       unlinkSync(tmpPath);
     });
+
+    it('should load Continue array format', () => {
+      const config = loadConfig(path.join(FIXTURE_DIR, 'continue-config.json'));
+      expect(config.mcpServers).toBeDefined();
+      expect(config.mcpServers['github']).toBeDefined();
+      expect(config.mcpServers['github'].command).toBe('npx');
+      expect(config.mcpServers['supabase']).toBeDefined();
+    });
+
+    it('should load Zed context_servers format', () => {
+      const config = loadConfig(path.join(FIXTURE_DIR, 'zed-config.json'));
+      expect(config.mcpServers).toBeDefined();
+      expect(config.mcpServers['github']).toBeDefined();
+      expect(config.mcpServers['github'].command).toBe('npx');
+      expect(config.mcpServers['github'].args).toContain('@modelcontextprotocol/server-github');
+      expect(config.mcpServers['filesystem']).toBeDefined();
+    });
+
+    it('should load VS Code servers format', () => {
+      const config = loadConfig(path.join(FIXTURE_DIR, 'vscode-config.json'));
+      expect(config.mcpServers).toBeDefined();
+      expect(config.mcpServers['playwright']).toBeDefined();
+      expect(config.mcpServers['playwright'].command).toBe('npx');
+      expect(config.mcpServers['github']).toBeDefined();
+    });
   });
 
   describe('getServerType', () => {
