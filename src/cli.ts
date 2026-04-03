@@ -225,6 +225,7 @@ program
     } else if (fixResult.applied.length > 0) {
       writeConfig(configPath, fixedConfig);
       console.log(chalk.green(`\n✅ Applied ${fixResult.applied.length} fix(es) to ${configPath}`));
+      console.log(chalk.dim(`   Backup saved to: ${configPath}.bak`));
     }
     console.log();
   });

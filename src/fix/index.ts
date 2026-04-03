@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, cpSync } from 'fs';
 import { MCPConfig, Finding } from '../types/index.js';
 
 interface FixAction {
@@ -48,7 +48,9 @@ const FIX_ACTIONS: FixAction[] = [
       updated.mcpServers[serverName] = { ...server, env: { ...server.env } };
       for (const key of Object.keys(updated.mcpServers[serverName].env!)) {
         if (sensitiveKeys.some(s => key.toUpperCase().includes(s))) {
-          updated.mcpServers[serverName].env![key] = `\${${key}}`;
+          // Sanitize key to prevent command injection: only allow alphanumeric and underscore
+          const safeKey = key.replace(/[^a-zA-Z0-9_]/g, '_');
+          updated.mcpServers[serverName].env![key] = `\${${safeKey}}`;
         }
       }
       return updated;
@@ -138,7 +140,11 @@ export function applyFixes(
 }
 
 export function writeConfig(configPath: string, config: MCPConfig): void {
+  // Create a backup before writing — overwrite any stale .bak
+  const backupPath = configPath + '.bak';
   const raw = readFileSync(configPath, 'utf-8');
+  writeFileSync(backupPath, raw, 'utf-8');
+
   const parsed = JSON.parse(raw);
 
   // Preserve the original key (mcpServers or servers)

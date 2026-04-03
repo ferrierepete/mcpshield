@@ -41,7 +41,7 @@ async function fetchNpmPackageInfo(packageName: string): Promise<RegistryCheckRe
     const data = (await response.json()) as NpmPackageInfo;
     return { exists: true, packageInfo: data };
   } catch (e: any) {
-    return { exists: true, error: e.message };
+    return { exists: false, error: e.message };
   }
 }
 
@@ -58,22 +58,24 @@ async function fetchPypiPackageInfo(packageName: string): Promise<RegistryCheckR
       return { exists: false };
     }
     if (!response.ok) {
-      return { exists: true, error: `HTTP ${response.status}` };
+      return { exists: false, error: `HTTP ${response.status}` };
     }
 
     return { exists: true };
   } catch (e: any) {
-    return { exists: true, error: e.message };
+    return { exists: false, error: e.message };
   }
 }
 
 function extractPackageName(args: string[], cmd: string): string | null {
   const pkgArg = args.find(a => a.startsWith('@') || (!a.startsWith('-') && a !== cmd && a !== '-y'));
   if (!pkgArg) return null;
-  // Strip version suffix for lookup
+  // Strip version suffix / version range for lookup
   const atIdx = pkgArg.lastIndexOf('@');
-  if (atIdx > 0) return pkgArg.substring(0, atIdx);
-  return pkgArg;
+  let name = atIdx > 0 ? pkgArg.substring(0, atIdx) : pkgArg;
+  // Strip npm version range prefixes: ^1.0.0, ~2.0.0, >=3.0.0, >=4.0.0 <5.0.0, etc.
+  name = name.replace(/^[\^~>=<]+/, '');
+  return name;
 }
 
 export async function scanRegistry(name: string, config: MCPServerConfig): Promise<Finding[]> {
@@ -91,12 +93,16 @@ export async function scanRegistry(name: string, config: MCPServerConfig): Promi
     if (!result.exists) {
       findings.push(createFinding({
         title: 'Package Not Found on npm',
-        description: `Package "${pkgName}" does not exist on the npm registry. This could be a typo, a private package, or a dependency confusion attack vector.`,
-        severity: 'critical',
+        description: result.error
+          ? `Could not verify package "${pkgName}" on npm (${result.error}). Treating as unverified.`
+          : `Package "${pkgName}" does not exist on the npm registry. This could be a typo, a private package, or a dependency confusion attack vector.`,
+        severity: result.error ? 'medium' : 'critical',
         category: 'supply-chain',
         serverName: name,
-        remediation: 'Verify the package name is correct. If this is a private package, ensure your npm configuration is set up correctly.',
-        references: ['MCP-10: Dependency Confusion', 'MCP-01: Malicious Server Distribution'],
+        remediation: result.error
+          ? `Resolve the network error: ${result.error}. If offline, registry checks are unavailable.`
+          : 'Verify the package name is correct. If this is a private package, ensure your npm configuration is set up correctly.',
+        references: result.error ? [] : ['MCP-10: Dependency Confusion', 'MCP-01: Malicious Server Distribution'],
       }));
       return findings;
     }
@@ -171,12 +177,16 @@ export async function scanRegistry(name: string, config: MCPServerConfig): Promi
     if (!result.exists) {
       findings.push(createFinding({
         title: 'Package Not Found on PyPI',
-        description: `Package "${pkgName}" does not exist on PyPI. This could be a typo, a private package, or a dependency confusion attack vector.`,
-        severity: 'critical',
+        description: result.error
+          ? `Could not verify package "${pkgName}" on PyPI (${result.error}). Treating as unverified.`
+          : `Package "${pkgName}" does not exist on PyPI. This could be a typo, a private package, or a dependency confusion attack vector.`,
+        severity: result.error ? 'medium' : 'critical',
         category: 'supply-chain',
         serverName: name,
-        remediation: 'Verify the package name is correct. If this is a private package, ensure your pip configuration is set up correctly.',
-        references: ['MCP-10: Dependency Confusion'],
+        remediation: result.error
+          ? `Resolve the network error: ${result.error}. If offline, registry checks are unavailable.`
+          : 'Verify the package name is correct. If this is a private package, ensure your pip configuration is set up correctly.',
+        references: result.error ? [] : ['MCP-10: Dependency Confusion'],
       }));
     }
   }

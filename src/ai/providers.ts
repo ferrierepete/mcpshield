@@ -55,7 +55,9 @@ export function resolveAIConfig(opts: {
   };
 
   const envKeys = envKeyMap[provider] || [];
-  const apiKey = envKeys.reduce<string>((found, key) => found || process.env[key] || '', '');
+  const apiKey = envKeys.reduce(
+    (found, key) => found || process.env[key] || '', ''
+  );
 
   if (!apiKey) {
     throw new Error(
