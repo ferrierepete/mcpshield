@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "http-insecure": {
+      "command": "node",
+      "args": [],
+      "url": "http://remote-server.example.com:3000/mcp"
+    },
+    "https-safe": {
+      "command": "node",
+      "args": [],
+      "url": "https://api.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer token123"
+      }
+    },
+    "remote-no-auth": {
+      "command": "node",
+      "args": [],
+      "url": "https://open-api.example.com/mcp"
+    },
+    "ip-based": {
+      "command": "node",
+      "args": [],
+      "url": "http://192.168.1.100:8080/mcp"
+    },
+    "localhost-http": {
+      "command": "node",
+      "args": [],
+      "url": "http://localhost:3000/mcp"
+    }
+  }
+}

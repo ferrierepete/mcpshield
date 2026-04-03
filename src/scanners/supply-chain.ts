@@ -1,25 +1,6 @@
 import { MCPServerConfig, Finding } from '../types/index.js';
 import { createFinding } from '../utils/helpers.js';
-
-// Known risky packages that have been associated with supply chain attacks or are common typosquat targets
-const KNOWN_RISKY_PACKAGES = new Set([
-  'mcptools', 'mcp-server-tools', 'mcp-toolkit',
-  'ai-tools-mcp', 'mcp-all-in-one',
-]);
-
-// Packages that are well-known and trusted
-const TRUSTED_PACKAGES = new Set([
-  '@modelcontextprotocol/server-filesystem',
-  '@modelcontextprotocol/server-github',
-  '@modelcontextprotocol/server-gitlab',
-  '@modelcontextprotocol/server-postgres',
-  '@modelcontextprotocol/server-brave-search',
-  '@modelcontextprotocol/server-puppeteer',
-  '@modelcontextprotocol/server-memory',
-  '@modelcontextprotocol/server-fetch',
-  '@modelcontextprotocol/server-sqlite',
-  '@anthropic/mcp-server',
-]);
+import { isTrustedPackage, isRiskyPackage } from '../data/index.js';
 
 export function scanSupplyChain(name: string, config: MCPServerConfig): Finding[] {
   const findings: Finding[] = [];
@@ -45,7 +26,7 @@ export function scanSupplyChain(name: string, config: MCPServerConfig): Finding[
       }
 
       // Check against known risky packages
-      if (KNOWN_RISKY_PACKAGES.has(pkgArg)) {
+      if (isRiskyPackage(pkgArg)) {
         findings.push(createFinding({
           title: 'Known Risky Package',
           description: `Package "${pkgArg}" is in the known-risky list. It may be a typosquat or has been associated with suspicious activity.`,
@@ -57,7 +38,7 @@ export function scanSupplyChain(name: string, config: MCPServerConfig): Finding[
       }
 
       // Warn about unverified packages
-      if (!TRUSTED_PACKAGES.has(pkgArg) && !pkgArg.startsWith('@modelcontextprotocol/')) {
+      if (!isTrustedPackage(pkgArg)) {
         findings.push(createFinding({
           title: 'Unverified Third-Party Package',
           description: `Package "${pkgArg}" is not in the verified list. Third-party MCP servers can execute arbitrary code on your machine.`,

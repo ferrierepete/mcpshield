@@ -1,9 +1,12 @@
 import { MCPServerConfig, ScanResult, ServerScanResult, Finding } from '../types/index.js';
-import { resetCounter, calculateScore } from '../utils/helpers.js';
+import { ScanContext, resetCounter, calculateScore } from '../utils/helpers.js';
 import { scanSupplyChain } from './supply-chain.js';
 import { scanPermissions } from './permissions.js';
 import { scanConfiguration } from './configuration.js';
 import { scanThreats } from './threats.js';
+import { scanTransport } from './transport.js';
+import { scanRegistry } from './registry.js';
+import { pluginRegistry } from '../plugins/index.js';
 
 export function scanServer(name: string, config: MCPServerConfig): ServerScanResult {
   const findings: Finding[] = [
@@ -11,6 +14,7 @@ export function scanServer(name: string, config: MCPServerConfig): ServerScanRes
     ...scanSupplyChain(name, config),
     ...scanPermissions(name, config),
     ...scanThreats(name, config),
+    ...scanTransport(name, config),
   ];
 
   return {
@@ -25,6 +29,7 @@ export function scanAllServers(
   servers: Record<string, MCPServerConfig>,
   targetPath: string
 ): ScanResult {
+  // Create a fresh context for each scan run
   resetCounter();
 
   const serverResults: ServerScanResult[] = [];
@@ -32,6 +37,39 @@ export function scanAllServers(
     serverResults.push(scanServer(name, config));
   }
 
+  return buildScanResult(serverResults, targetPath);
+}
+
+export async function scanAllServersWithRegistry(
+  servers: Record<string, MCPServerConfig>,
+  targetPath: string
+): Promise<ScanResult> {
+  resetCounter();
+
+  const serverResults: ServerScanResult[] = [];
+  for (const [name, config] of Object.entries(servers)) {
+    const base = scanServer(name, config);
+    try {
+      const registryFindings = await scanRegistry(name, config);
+      base.findings.push(...registryFindings);
+    } catch {
+      // Registry checks are best-effort; skip on network errors
+    }
+    // Run custom plugins
+    try {
+      const pluginFindings = await pluginRegistry.runAll(name, config);
+      base.findings.push(...pluginFindings);
+    } catch {
+      // Plugin errors are non-fatal
+    }
+    base.score = calculateScore(base.findings);
+    serverResults.push(base);
+  }
+
+  return buildScanResult(serverResults, targetPath);
+}
+
+function buildScanResult(serverResults: ServerScanResult[], targetPath: string): ScanResult {
   const allFindings = serverResults.flatMap(s => s.findings);
   const summary = {
     total: allFindings.length,

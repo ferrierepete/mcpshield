@@ -1,0 +1,152 @@
+import { readFileSync, writeFileSync } from 'fs';
+import { MCPConfig, Finding } from '../types/index.js';
+
+interface FixAction {
+  findingTitle: string;
+  description: string;
+  apply: (config: MCPConfig, serverName: string, finding: Finding) => MCPConfig | null;
+}
+
+const FIX_ACTIONS: FixAction[] = [
+  {
+    findingTitle: 'Unpinned Package Version',
+    description: 'Pin package to latest version placeholder (requires manual version entry)',
+    apply: (config, serverName) => {
+      const server = config.mcpServers[serverName];
+      if (!server?.args) return null;
+      const updated = { ...config };
+      updated.mcpServers = { ...config.mcpServers };
+      updated.mcpServers[serverName] = { ...server };
+      updated.mcpServers[serverName].args = server.args.map(arg => {
+        if ((arg.startsWith('@') || !arg.startsWith('-')) && arg !== '-y') {
+          const lastAt = arg.lastIndexOf('@');
+          if (lastAt <= 0) {
+            return `${arg}@latest`;
+          }
+        }
+        return arg;
+      });
+      return updated;
+    },
+  },
+  {
+    findingTitle: 'Sensitive Credentials in Config',
+    description: 'Replace hardcoded secrets with environment variable references',
+    apply: (config, serverName) => {
+      const server = config.mcpServers[serverName];
+      if (!server?.env) return null;
+      const sensitiveKeys = [
+        'AWS_SECRET_ACCESS_KEY', 'AWS_ACCESS_KEY_ID',
+        'GH_TOKEN', 'GITHUB_TOKEN', 'GITHUB_PAT',
+        'OPENAI_API_KEY', 'ANTHROPIC_API_KEY',
+        'DATABASE_URL', 'DB_PASSWORD',
+        'PRIVATE_KEY', 'SECRET_KEY',
+        'STRIPE_SECRET_KEY', 'SLACK_TOKEN',
+      ];
+      const updated = { ...config };
+      updated.mcpServers = { ...config.mcpServers };
+      updated.mcpServers[serverName] = { ...server, env: { ...server.env } };
+      for (const key of Object.keys(updated.mcpServers[serverName].env!)) {
+        if (sensitiveKeys.some(s => key.toUpperCase().includes(s))) {
+          updated.mcpServers[serverName].env![key] = `\${${key}}`;
+        }
+      }
+      return updated;
+    },
+  },
+  {
+    findingTitle: 'Network Binding to All Interfaces',
+    description: 'Replace 0.0.0.0 with 127.0.0.1 (localhost)',
+    apply: (config, serverName) => {
+      const server = config.mcpServers[serverName];
+      if (!server?.args) return null;
+      const updated = { ...config };
+      updated.mcpServers = { ...config.mcpServers };
+      updated.mcpServers[serverName] = { ...server };
+      updated.mcpServers[serverName].args = server.args.map(arg =>
+        arg.replace(/0\.0\.0\.0/g, '127.0.0.1').replace(/::/g, '::1')
+      );
+      return updated;
+    },
+  },
+  {
+    findingTitle: 'Insecure HTTP Transport',
+    description: 'Upgrade HTTP URL to HTTPS',
+    apply: (config, serverName) => {
+      const server = config.mcpServers[serverName];
+      if (!server?.url?.startsWith('http://')) return null;
+      const updated = { ...config };
+      updated.mcpServers = { ...config.mcpServers };
+      updated.mcpServers[serverName] = {
+        ...server,
+        url: server.url.replace('http://', 'https://'),
+      };
+      return updated;
+    },
+  },
+  {
+    findingTitle: 'Empty or Wildcard Environment Variable',
+    description: 'Remove empty/wildcard environment variables',
+    apply: (config, serverName) => {
+      const server = config.mcpServers[serverName];
+      if (!server?.env) return null;
+      const updated = { ...config };
+      updated.mcpServers = { ...config.mcpServers };
+      updated.mcpServers[serverName] = { ...server, env: { ...server.env } };
+      for (const [key, value] of Object.entries(updated.mcpServers[serverName].env!)) {
+        if (value === '' || value === '*') {
+          delete updated.mcpServers[serverName].env![key];
+        }
+      }
+      return updated;
+    },
+  },
+];
+
+export interface FixResult {
+  applied: string[];
+  skipped: string[];
+}
+
+export function getAvailableFixes(findings: Finding[]): FixAction[] {
+  return FIX_ACTIONS.filter(fix =>
+    findings.some(f => f.title === fix.findingTitle)
+  );
+}
+
+export function applyFixes(
+  config: MCPConfig,
+  findings: Finding[],
+): { config: MCPConfig; result: FixResult } {
+  let current = config;
+  const result: FixResult = { applied: [], skipped: [] };
+
+  for (const fix of FIX_ACTIONS) {
+    const matchingFindings = findings.filter(f => f.title === fix.findingTitle);
+    for (const finding of matchingFindings) {
+      const fixed = fix.apply(current, finding.serverName, finding);
+      if (fixed) {
+        current = fixed;
+        result.applied.push(`${finding.serverName}: ${fix.description}`);
+      } else {
+        result.skipped.push(`${finding.serverName}: ${fix.findingTitle} (no automatic fix available)`);
+      }
+    }
+  }
+
+  return { config: current, result };
+}
+
+export function writeConfig(configPath: string, config: MCPConfig): void {
+  const raw = readFileSync(configPath, 'utf-8');
+  const parsed = JSON.parse(raw);
+
+  // Preserve the original key (mcpServers or servers)
+  if (parsed.servers && !parsed.mcpServers) {
+    parsed.servers = config.mcpServers;
+  } else {
+    parsed.mcpServers = config.mcpServers;
+  }
+
+  writeFileSync(configPath, JSON.stringify(parsed, null, 2) + '\n', 'utf-8');
+}

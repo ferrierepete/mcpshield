@@ -1,0 +1,21 @@
+{
+  "description": "Packages verified as legitimate MCP servers. Add entries to trust additional packages.",
+  "packages": [
+    "@modelcontextprotocol/server-filesystem",
+    "@modelcontextprotocol/server-github",
+    "@modelcontextprotocol/server-gitlab",
+    "@modelcontextprotocol/server-postgres",
+    "@modelcontextprotocol/server-brave-search",
+    "@modelcontextprotocol/server-puppeteer",
+    "@modelcontextprotocol/server-memory",
+    "@modelcontextprotocol/server-fetch",
+    "@modelcontextprotocol/server-sqlite",
+    "@modelcontextprotocol/server-slack",
+    "@modelcontextprotocol/server-google-maps",
+    "@modelcontextprotocol/server-everything",
+    "@anthropic/mcp-server"
+  ],
+  "trustedScopes": [
+    "@modelcontextprotocol/"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "description": "Packages known to be risky, typosquats, or associated with malicious activity.",
+  "packages": [
+    "mcptools",
+    "mcp-server-tools",
+    "mcp-toolkit",
+    "ai-tools-mcp",
+    "mcp-all-in-one",
+    "mcp-helper",
+    "modelcontextprotocol",
+    "mcp-server-all"
+  ]
+}

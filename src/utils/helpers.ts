@@ -1,6 +1,31 @@
 import { Finding, FindingCategory, Severity } from '../types/index.js';
 
-let findingCounter = 0;
+export class ScanContext {
+  private findingCounter = 0;
+
+  createFinding(opts: {
+    title: string;
+    description: string;
+    severity: Severity;
+    category: FindingCategory;
+    serverName: string;
+    remediation: string;
+    references?: string[];
+  }): Finding {
+    this.findingCounter++;
+    return {
+      id: `MCP-${String(this.findingCounter).padStart(3, '0')}`,
+      ...opts,
+    };
+  }
+
+  get count(): number {
+    return this.findingCounter;
+  }
+}
+
+// Legacy helpers kept for backward compatibility
+let _legacyCtx = new ScanContext();
 
 export function createFinding(opts: {
   title: string;
@@ -11,15 +36,11 @@ export function createFinding(opts: {
   remediation: string;
   references?: string[];
 }): Finding {
-  findingCounter++;
-  return {
-    id: `MCP-${String(findingCounter).padStart(3, '0')}`,
-    ...opts,
-  };
+  return _legacyCtx.createFinding(opts);
 }
 
 export function resetCounter(): void {
-  findingCounter = 0;
+  _legacyCtx = new ScanContext();
 }
 
 const SEVERITY_SCORES: Record<Severity, number> = {

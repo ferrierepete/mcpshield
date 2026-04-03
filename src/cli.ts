@@ -3,9 +3,13 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { autoDetectConfig, discoverConfigs, loadConfig } from './scanners/config-loader.js';
-import { scanAllServers } from './scanners/index.js';
+import { scanAllServers, scanAllServersWithRegistry } from './scanners/index.js';
 import { severityIcon, scoreColor } from './utils/helpers.js';
-import { ScanResult, OWASP_MCP_TOP_CATEGORIES } from './types/index.js';
+import { ScanResult, OWASP_MCP_TOP_CATEGORIES, Severity } from './types/index.js';
+import { toSarif } from './formatters/sarif.js';
+import { loadMCPShieldConfig, severityMeetsThreshold } from './config/index.js';
+import { applyFixes, getAvailableFixes, writeConfig } from './fix/index.js';
+import { watch } from 'fs';
 
 const VERSION = '0.1.0';
 
@@ -20,9 +24,21 @@ program
   .command('scan')
   .description('Scan MCP server configurations for security issues')
   .option('-c, --config <path>', 'Path to MCP config file')
-  .option('-f, --format <fmt>', 'Output format: pretty, json, markdown', 'pretty')
+  .option('-f, --format <fmt>', 'Output format: pretty, json, markdown, sarif', 'pretty')
   .option('--no-spinner', 'Disable progress spinner')
+  .option('-r, --registry', 'Enable remote registry checks (npm/PyPI) for supply chain verification')
+  .option('-s, --severity <level>', 'Minimum severity threshold to display: critical, high, medium, low, info')
+  .option('-i, --ignore <ids...>', 'Finding IDs or titles to ignore (space-separated)')
   .action(async (opts) => {
+    // Load MCPShield's own config (.mcpshieldrc)
+    const shieldConfig = loadMCPShieldConfig();
+
+    // CLI flags override .mcpshieldrc defaults
+    const format = opts.format || shieldConfig.format || 'pretty';
+    const useRegistry = opts.registry || shieldConfig.registry || false;
+    const severityThreshold: Severity = opts.severity || shieldConfig.severityThreshold || 'info';
+    const ignoreList: string[] = [...(opts.ignore || []), ...(shieldConfig.ignore || [])];
+
     // Load config
     let config;
     let configPath: string;
@@ -55,23 +71,30 @@ program
 
     // Run scan
     const spinner = opts.spinner !== false
-      ? ora(`Scanning ${serverCount} MCP server(s)...`).start()
+      ? ora(`Scanning ${serverCount} MCP server(s)${useRegistry ? ' (with registry checks)' : ''}...`).start()
       : null;
 
-    const result = scanAllServers(config.mcpServers, configPath);
+    const result = useRegistry
+      ? await scanAllServersWithRegistry(config.mcpServers, configPath)
+      : scanAllServers(config.mcpServers, configPath);
 
     if (spinner) spinner.stop();
 
+    // Apply severity threshold and ignore filters
+    const filtered = applyFilters(result, severityThreshold, ignoreList);
+
     // Output results
-    if (opts.format === 'json') {
-      console.log(JSON.stringify(result, null, 2));
-    } else if (opts.format === 'markdown') {
-      printMarkdown(result);
+    if (format === 'json') {
+      console.log(JSON.stringify(filtered, null, 2));
+    } else if (format === 'markdown') {
+      printMarkdown(filtered);
+    } else if (format === 'sarif') {
+      console.log(JSON.stringify(toSarif(filtered, VERSION), null, 2));
     } else {
-      printPretty(configPath, result);
+      printPretty(configPath, filtered);
     }
 
-    // Exit code based on severity
+    // Exit code based on severity (use unfiltered result for exit codes)
     if (result.summary.critical > 0) process.exit(2);
     if (result.summary.high > 0) process.exit(1);
   });
@@ -102,6 +125,132 @@ program
     }
     console.log();
   });
+
+program
+  .command('fix')
+  .description('Auto-fix common security issues in MCP config')
+  .option('-c, --config <path>', 'Path to MCP config file')
+  .option('--dry-run', 'Show what would be fixed without writing changes')
+  .action(async (opts) => {
+    let config;
+    let configPath: string;
+
+    if (opts.config) {
+      try {
+        config = loadConfig(opts.config);
+        configPath = opts.config;
+      } catch (e: any) {
+        console.error(chalk.red(`Error: Cannot load config from ${opts.config}: ${e.message}`));
+        process.exit(1);
+      }
+    } else {
+      const auto = autoDetectConfig();
+      if (!auto) {
+        console.error(chalk.red('Error: No MCP configuration found.'));
+        process.exit(1);
+      }
+      config = auto.config;
+      configPath = auto.path;
+    }
+
+    // Scan first
+    const result = scanAllServers(config.mcpServers, configPath);
+    const allFindings = result.servers.flatMap(s => s.findings);
+    const available = getAvailableFixes(allFindings);
+
+    if (available.length === 0) {
+      console.log(chalk.green('\n✅ No auto-fixable issues found.\n'));
+      return;
+    }
+
+    console.log(chalk.bold.cyan('\n🔧 MCPShield Auto-Fix\n'));
+    console.log(chalk.dim(`Config: ${configPath}\n`));
+
+    const { config: fixedConfig, result: fixResult } = applyFixes(config, allFindings);
+
+    for (const applied of fixResult.applied) {
+      console.log(`  ${chalk.green('✓')} ${applied}`);
+    }
+    for (const skipped of fixResult.skipped) {
+      console.log(`  ${chalk.yellow('⊘')} ${skipped}`);
+    }
+
+    if (opts.dryRun) {
+      console.log(chalk.dim('\n(Dry run — no changes written)'));
+      console.log(chalk.dim('\nFixed config preview:'));
+      console.log(JSON.stringify(fixedConfig, null, 2));
+    } else if (fixResult.applied.length > 0) {
+      writeConfig(configPath, fixedConfig);
+      console.log(chalk.green(`\n✅ Applied ${fixResult.applied.length} fix(es) to ${configPath}`));
+    }
+    console.log();
+  });
+
+program
+  .command('watch')
+  .description('Watch MCP config file for changes and re-scan automatically')
+  .option('-c, --config <path>', 'Path to MCP config file')
+  .option('-f, --format <fmt>', 'Output format: pretty, json, markdown, sarif', 'pretty')
+  .action(async (opts) => {
+    let configPath: string;
+
+    if (opts.config) {
+      configPath = opts.config;
+    } else {
+      const auto = autoDetectConfig();
+      if (!auto) {
+        console.error(chalk.red('Error: No MCP configuration found.'));
+        process.exit(1);
+      }
+      configPath = auto.path;
+    }
+
+    console.log(chalk.bold.cyan('\n👁️  MCPShield Watch Mode'));
+    console.log(chalk.dim(`Watching: ${configPath}\n`));
+    console.log(chalk.dim('Press Ctrl+C to stop.\n'));
+
+    // Initial scan
+    runWatchScan(configPath, opts.format);
+
+    // Watch for changes
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    watch(configPath, () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        console.log(chalk.dim(`\n--- Config changed at ${new Date().toLocaleTimeString()} ---\n`));
+        runWatchScan(configPath, opts.format);
+      }, 500);
+    });
+  });
+
+function applyFilters(result: ScanResult, threshold: Severity, ignoreList: string[]): ScanResult {
+  const ignoreLower = ignoreList.map(i => i.toLowerCase());
+
+  const filteredServers = result.servers.map(server => {
+    const filteredFindings = server.findings.filter(f => {
+      if (!severityMeetsThreshold(f.severity, threshold)) return false;
+      if (ignoreLower.includes(f.id.toLowerCase())) return false;
+      if (ignoreLower.includes(f.title.toLowerCase())) return false;
+      return true;
+    });
+    return { ...server, findings: filteredFindings };
+  });
+
+  const allFiltered = filteredServers.flatMap(s => s.findings);
+  return {
+    ...result,
+    servers: filteredServers,
+    summary: {
+      total: allFiltered.length,
+      critical: allFiltered.filter(f => f.severity === 'critical').length,
+      high: allFiltered.filter(f => f.severity === 'high').length,
+      medium: allFiltered.filter(f => f.severity === 'medium').length,
+      low: allFiltered.filter(f => f.severity === 'low').length,
+      info: allFiltered.filter(f => f.severity === 'info').length,
+      score: result.summary.score, // Keep original score
+    },
+  };
+}
 
 function printPretty(configPath: string, result: ScanResult) {
   console.log();
@@ -186,6 +335,25 @@ function printMarkdown(result: ScanResult) {
       console.log(`**Description:** ${f.description}`);
       console.log(`**Remediation:** ${f.remediation}\n`);
     }
+  }
+}
+
+function runWatchScan(configPath: string, format: string): void {
+  try {
+    const config = loadConfig(configPath);
+    const result = scanAllServers(config.mcpServers, configPath);
+
+    if (format === 'json') {
+      console.log(JSON.stringify(result, null, 2));
+    } else if (format === 'markdown') {
+      printMarkdown(result);
+    } else if (format === 'sarif') {
+      console.log(JSON.stringify(toSarif(result, VERSION), null, 2));
+    } else {
+      printPretty(configPath, result);
+    }
+  } catch (e: any) {
+    console.error(chalk.red(`Error scanning config: ${e.message}`));
   }
 }
 

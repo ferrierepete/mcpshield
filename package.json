@@ -2,6 +2,7 @@
   "name": "mcpshield",
   "version": "0.1.0",
   "description": "Security scanner for MCP (Model Context Protocol) servers — detect supply chain risks, permission overreach, and misconfigurations",
+  "type": "module",
   "main": "dist/index.js",
   "bin": {
     "mcpshield": "./dist/cli.js"
