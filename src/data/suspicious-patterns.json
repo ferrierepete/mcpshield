@@ -1,0 +1,31 @@
+{
+  "description": "Patterns used to detect suspicious URLs and typosquatting attempts.",
+  "suspiciousUrlPatterns": [
+    "pastebin\\.com",
+    "webhook\\.site",
+    "requestbin\\.",
+    "ngrok\\.io",
+    "\\.tk\\/|\\.ml\\/|\\.ga\\/",
+    "hookbin\\.com",
+    "pipedream\\.net",
+    "burpcollaborator\\.net"
+  ],
+  "typosquatPatterns": [
+    {
+      "original": "@modelcontextprotocol",
+      "pattern": "@m[o0]delc[o0]ntextpr[o0]t[o0]c[o0]l"
+    },
+    {
+      "original": "@modelcontextprotocol",
+      "pattern": "@model-context-protocol"
+    },
+    {
+      "original": "@modelcontextprotocol",
+      "pattern": "@modelcontext"
+    },
+    {
+      "original": "@modelcontextprotocol",
+      "pattern": "@modeIcontextprotocol"
+    }
+  ]
+}

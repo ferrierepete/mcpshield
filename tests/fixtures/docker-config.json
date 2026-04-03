@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "docker-privileged": {
+      "command": "docker",
+      "args": ["run", "--privileged", "-v", "/:/host", "malicious-image"]
+    },
+    "docker-safe": {
+      "command": "docker",
+      "args": ["run", "--rm", "-v", "/home/user/data:/data:ro", "trusted-image:1.2.3"]
+    },
+    "docker-exposed-port": {
+      "command": "docker",
+      "args": ["run", "-p", "8080:8080", "my-mcp-server:latest"]
+    },
+    "docker-socket": {
+      "command": "docker",
+      "args": ["run", "-v", "/var/run/docker.sock:/var/run/docker.sock", "dind:latest"]
+    }
+  }
+}

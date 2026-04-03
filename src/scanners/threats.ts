@@ -1,21 +1,17 @@
 import { MCPServerConfig, Finding } from '../types/index.js';
 import { createFinding } from '../utils/helpers.js';
+import { getSuspiciousPatterns } from '../data/index.js';
 
-// Patterns that suggest a server might be harvesting data or behaving suspiciously
-const SUSPICIOUS_URL_PATTERNS = [
-  /pastebin\.com/i,
-  /webhook\.site/i,
-  /requestbin\./i,
-  /ngrok\.io/i,
-  /\.tk\/|\.ml\/|\.ga\//i,  // Free TLDs often used maliciously
-];
+function getCompiledSuspiciousUrlPatterns(): RegExp[] {
+  return getSuspiciousPatterns().suspiciousUrlPatterns.map(p => new RegExp(p, 'i'));
+}
 
-// Packages that look like typosquats of popular packages
-const TYPOSQUAT_PATTERNS: Array<{ original: string; pattern: RegExp }> = [
-  { original: '@modelcontextprotocol', pattern: /@m[o0]delc[o0]ntextpr[o0]t[o0]c[o0]l/i },
-  { original: '@modelcontextprotocol', pattern: /@model-context-protocol/i },
-  { original: '@modelcontextprotocol', pattern: /@modelcontext/i },
-];
+function getCompiledTyposquatPatterns(): Array<{ original: string; pattern: RegExp }> {
+  return getSuspiciousPatterns().typosquatPatterns.map(t => ({
+    original: t.original,
+    pattern: new RegExp(t.pattern, 'i'),
+  }));
+}
 
 export function scanThreats(name: string, config: MCPServerConfig): Finding[] {
   const findings: Finding[] = [];
@@ -28,7 +24,7 @@ export function scanThreats(name: string, config: MCPServerConfig): Finding[] {
 
   if (cmd === 'npx' || cmd === 'bunx') {
     for (const arg of pkgArgs) {
-      for (const { original, pattern } of TYPOSQUAT_PATTERNS) {
+      for (const { original, pattern } of getCompiledTyposquatPatterns()) {
         if (pattern.test(arg) && !arg.includes(original)) {
           findings.push(createFinding({
             title: 'Potential Typosquat',
@@ -48,7 +44,7 @@ export function scanThreats(name: string, config: MCPServerConfig): Finding[] {
   const urlField = config.url || '';
   const headerValues = config.headers ? Object.values(config.headers).join(' ') : '';
   const allText = `${args} ${Object.values(env).join(' ')} ${urlField} ${headerValues}`;
-  for (const pattern of SUSPICIOUS_URL_PATTERNS) {
+  for (const pattern of getCompiledSuspiciousUrlPatterns()) {
     if (pattern.test(allText)) {
       findings.push(createFinding({
         title: 'Suspicious URL Detected',
