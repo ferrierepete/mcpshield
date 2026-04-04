@@ -45,10 +45,11 @@ const DOCKER_CONFIG = path.join(FIXTURE_DIR, 'docker-config.json');
 const HTTP_CONFIG = path.join(FIXTURE_DIR, 'http-config.json');
 const EDGE_CASES = path.join(FIXTURE_DIR, 'edge-cases.json');
 
-/** Returns a temp copy of a fixture that we can safely mutate (used by `fix` tests). */
+/** Returns a temp copy of a fixture that we can safely mutate (used by `fix` tests).
+ *  Files are created under PROJECT_ROOT so they pass resolveSafeConfigPath(). */
 function tempFixture(name: string): string {
   const src = path.join(FIXTURE_DIR, name);
-  const dst = path.join(os.tmpdir(), `mcpshield-test-${Date.now()}-${name}`);
+  const dst = path.join(PROJECT_ROOT, `.tmp-test-${Date.now()}-${name}`);
   fs.copyFileSync(src, dst);
   return dst;
 }
@@ -71,8 +72,8 @@ describe('CLI Integration', () => {
 
   describe('scan — basic', () => {
     it('exits 0 when no findings', async () => {
-      // Create a minimal clean config
-      const cleanConfig = path.join(os.tmpdir(), `mcpshield-clean-${Date.now()}.json`);
+      // Create a minimal clean config under PROJECT_ROOT (inside cwd)
+      const cleanConfig = path.join(PROJECT_ROOT, `.tmp-test-clean-${Date.now()}.json`);
       fs.writeFileSync(cleanConfig, JSON.stringify({
         mcpServers: { safe: { command: '/bin/true', args: [] } }
       }, null, 2));
@@ -94,9 +95,9 @@ describe('CLI Integration', () => {
       expect(r.code).toBe(2);
     });
 
-    it('prints no MCP config error when file missing', async () => {
+    it('prints error when config path is outside allowed directories', async () => {
       const r = await runCli(['scan', '--config', '/nonexistent/config.json']);
-      expect(r.stderr).toContain('Error: Cannot load config');
+      expect(r.stderr).toContain('outside allowed directories');
       expect(r.code).toBe(1);
     });
 
@@ -236,7 +237,10 @@ describe('CLI Integration', () => {
 
     it('--ai without API key exits gracefully with a warning', async () => {
       // Unset all AI env vars
-      const env = { ...process.env };
+      const env: Record<string, string> = {};
+      for (const [k, v] of Object.entries(process.env)) {
+        if (v !== undefined) env[k] = v;
+      }
       delete env.OPENAI_API_KEY;
       delete env.ANTHROPIC_API_KEY;
       delete env.GEMINI_API_KEY;
@@ -263,9 +267,45 @@ describe('CLI Integration', () => {
     });
   });
 
+  describe('scan — --config path traversal prevention', () => {
+    it('rejects --config /etc/passwd with error and exit 1', async () => {
+      const r = await runCli(['scan', '--config', '/etc/passwd']);
+      expect(r.code).toBe(1);
+      expect(r.stderr).toContain('outside allowed directories');
+    });
+
+    it('rejects --config /proc/self/environ with error and exit 1', async () => {
+      const r = await runCli(['scan', '--config', '/proc/self/environ']);
+      expect(r.code).toBe(1);
+      expect(r.stderr).toContain('outside allowed directories');
+    });
+
+    it('rejects --config pointing to /usr/share with error and exit 1', async () => {
+      const r = await runCli(['scan', '--config', '/usr/share/secrets.json']);
+      expect(r.code).toBe(1);
+      expect(r.stderr).toContain('outside allowed directories');
+    });
+  });
+
+  describe('fix — --config path traversal prevention', () => {
+    it('rejects --config /etc/passwd with error and exit 1', async () => {
+      const r = await runCli(['fix', '--config', '/etc/passwd']);
+      expect(r.code).toBe(1);
+      expect(r.stderr).toContain('outside allowed directories');
+    });
+  });
+
+  describe('watch — --config path traversal prevention', () => {
+    it('rejects --config /etc/passwd with error and exit 1', async () => {
+      const r = await runCli(['watch', '--config', '/etc/passwd']);
+      expect(r.code).toBe(1);
+      expect(r.stderr).toContain('outside allowed directories');
+    });
+  });
+
   describe('scan — edge cases', () => {
     it('handles empty mcpServers object', async () => {
-      const emptyConfig = path.join(os.tmpdir(), `mcpshield-empty-${Date.now()}.json`);
+      const emptyConfig = path.join(PROJECT_ROOT, `.tmp-test-empty-${Date.now()}.json`);
       fs.writeFileSync(emptyConfig, JSON.stringify({ mcpServers: {} }, null, 2));
 
       const r = await runCli(['scan', '--config', emptyConfig]);
@@ -275,7 +315,7 @@ describe('CLI Integration', () => {
     });
 
     it('handles config with no mcpServers key', async () => {
-      const noServers = path.join(os.tmpdir(), `mcpshield-noservers-${Date.now()}.json`);
+      const noServers = path.join(PROJECT_ROOT, `.tmp-test-noservers-${Date.now()}.json`);
       fs.writeFileSync(noServers, JSON.stringify({}));
       const r = await runCli(['scan', '--config', noServers]);
       expect(r.code).toBe(0);
@@ -360,7 +400,7 @@ describe('CLI Integration', () => {
 
     it('shows error when config file missing', async () => {
       const r = await runCli(['fix', '--config', '/nonexistent.json']);
-      expect(r.stderr).toContain('Error: Cannot load config');
+      expect(r.stderr).toContain('outside allowed directories');
       expect(r.code).toBe(1);
     });
   });
@@ -368,14 +408,14 @@ describe('CLI Integration', () => {
   // ── watch ───────────────────────────────────────────────────────────────────────────────────
 
   describe('watch', () => {
-    it('exits with error when config file does not exist', async () => {
+    it('exits with error when config path is outside allowed directories', async () => {
       const r = await runCli(['watch', '--config', '/nonexistent.json']);
       expect(r.code).toBe(1);
-      expect(r.stdout + r.stderr).toContain('Config file not found');
+      expect(r.stdout + r.stderr).toContain('outside allowed directories');
     });
 
     it('starts and immediately scans a valid config', async () => {
-      const cleanConfig = path.join(os.tmpdir(), `mcpshield-watch-test-${Date.now()}.json`);
+      const cleanConfig = path.join(PROJECT_ROOT, `.tmp-test-watch-${Date.now()}.json`);
       fs.writeFileSync(cleanConfig, JSON.stringify({
         mcpServers: { test: { command: '/bin/true', args: [] } }
       }, null, 2));

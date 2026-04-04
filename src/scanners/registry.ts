@@ -35,7 +35,7 @@ async function fetchNpmPackageInfo(packageName: string): Promise<RegistryCheckRe
       return { exists: false };
     }
     if (!response.ok) {
-      return { exists: true, error: `HTTP ${response.status}` };
+      return { exists: false, error: `HTTP ${response.status}` };
     }
 
     const data = (await response.json()) as NpmPackageInfo;

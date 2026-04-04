@@ -16,10 +16,10 @@ function makeFinding(id: string, title: string, severity: Finding['severity'] = 
 }
 
 /** Helper that adds a .text() implementation alongside .json() for all mock fetch responses. */
-function withText<T extends object>(mockResponse: T): T & { text: () => Promise<string> } {
+function withText<T extends { json?: () => Promise<unknown> }>(mockResponse: T): T & { text: () => Promise<string> } {
   return {
     ...mockResponse,
-    text: async () => JSON.stringify(mockResponse.json ? await (mockResponse.json as () => Promise<unknown>)() : {}),
+    text: async () => JSON.stringify(mockResponse.json ? await mockResponse.json() : {}),
   } as T & { text: () => Promise<string> };
 }
 

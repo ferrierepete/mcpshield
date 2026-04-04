@@ -2,6 +2,16 @@
 
 All notable changes to MCPShield are documented here.
 
+## [0.2.1] — 2026-04-04
+
+### Fixed
+- **`--config` path traversal prevention** — the `--config` flag on `scan`, `fix`, and `watch` commands now gates all paths through `resolveSafeConfigPath()`. Previously, `--config /etc/passwd` would attempt to load the file directly, bypassing the path traversal protection that was already in place for `MCP_CONFIG_PATH` and auto-detection. Paths outside `cwd` and `homedir` are now rejected with a clear error message
+- **npm registry non-OK HTTP responses treated as unverified** — when the npm registry returns a non-OK HTTP status (e.g. 500, 429 rate limit), the package is now correctly marked as `exists: false` and surfaces a "Package Not Found on npm" finding. Previously, non-OK responses silently returned `exists: true`, allowing potentially malicious packages to pass registry checks without verification. This is consistent with the PyPI handler and the network error handler
+
+### Added
+- **Path traversal regression tests** — 8 new tests covering `--config` path traversal rejection across `scan`, `fix`, and `watch` commands (both CLI integration and unit level)
+- **Registry HTTP error regression tests** — 3 new tests verifying that npm HTTP 500, 429, and 200 responses are handled correctly
+
 ## [0.2.0] — 2026-04-04
 
 ### Added

@@ -130,8 +130,8 @@ describe('MEDIUM-2: Path traversal prevention', () => {
 describe('HIGH: Config file backup before writing', () => {
   const tmpDir = path.join(os.tmpdir(), 'mcpshield-backup-test');
 
-  beforeEach(() => fs.mkdirSync(tmpDir, { recursive: true }));
-  afterEach(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
+  beforeEach(() => { fs.mkdirSync(tmpDir, { recursive: true }); });
+  afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
   it('should create a .bak file before writing', () => {
     const configPath = path.join(tmpDir, 'mcp.json');
@@ -172,8 +172,8 @@ describe('HIGH: Config file backup before writing', () => {
 
 describe('MEDIUM: Secret env var key sanitization', () => {
   const tmpDir = path.join(os.tmpdir(), 'mcpshield-sanitize-test');
-  beforeEach(() => fs.mkdirSync(tmpDir, { recursive: true }));
-  afterEach(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
+  beforeEach(() => { fs.mkdirSync(tmpDir, { recursive: true }); });
+  afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
   it('should sanitize sensitive keys containing shell metacharacters', () => {
     // The key must match the sensitive-keys list AND contain shell metacharacters.
@@ -414,5 +414,109 @@ describe('Registry: version range prefix stripping', () => {
     // The security property: without stripping, a package arg like "pkg@^1.0.0"
     // would result in a "Package Not Found" false positive.
     expect(true).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MEDIUM: npm registry non-OK HTTP responses must not silently pass
+// ---------------------------------------------------------------------------
+
+describe('MEDIUM: npm registry non-OK HTTP treated as unverified', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should surface a medium finding when npm returns HTTP 500', async () => {
+    const { scanRegistry } = await import('../src/scanners/registry.js');
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    } as any);
+
+    const findings = await scanRegistry('test-server', {
+      command: 'npx',
+      args: ['-y', 'some-package'],
+    });
+
+    // Must report a finding — not silently pass
+    expect(findings.length).toBeGreaterThan(0);
+    const registryFinding = findings.find(f => f.title === 'Package Not Found on npm');
+    expect(registryFinding).toBeDefined();
+    expect(registryFinding!.severity).toBe('medium');
+    expect(registryFinding!.description).toContain('HTTP 500');
+  });
+
+  it('should surface a medium finding when npm returns HTTP 429 (rate limit)', async () => {
+    const { scanRegistry } = await import('../src/scanners/registry.js');
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      json: async () => ({}),
+    } as any);
+
+    const findings = await scanRegistry('test-server', {
+      command: 'npx',
+      args: ['-y', 'some-package'],
+    });
+
+    expect(findings.length).toBeGreaterThan(0);
+    const registryFinding = findings.find(f => f.title === 'Package Not Found on npm');
+    expect(registryFinding).toBeDefined();
+    expect(registryFinding!.severity).toBe('medium');
+    expect(registryFinding!.description).toContain('HTTP 429');
+  });
+
+  it('should NOT report a finding when npm returns HTTP 200', async () => {
+    const { scanRegistry } = await import('../src/scanners/registry.js');
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        name: 'some-package',
+        'dist-tags': { latest: '1.0.0' },
+        versions: { '1.0.0': {} },
+        time: { created: new Date(Date.now() - 365 * 86400000).toISOString() },
+        maintainers: [{ name: 'author1' }, { name: 'author2' }],
+        repository: { url: 'https://github.com/example/some-package' },
+      }),
+    } as any);
+
+    const findings = await scanRegistry('test-server', {
+      command: 'npx',
+      args: ['-y', 'some-package'],
+    });
+
+    const notFoundFinding = findings.find(f => f.title === 'Package Not Found on npm');
+    expect(notFoundFinding).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MEDIUM: --config flag path traversal prevention
+// ---------------------------------------------------------------------------
+
+describe('MEDIUM: --config path traversal prevention via resolveSafeConfigPath', () => {
+  // The CLI now gates all --config paths through resolveSafeConfigPath().
+  // These tests verify the function rejects traversal attempts that would
+  // be passed via --config (the function itself is already tested above;
+  // these document the security property for the --config vector).
+
+  it('should reject --config /etc/passwd', () => {
+    const result = resolveSafeConfigPath('/etc/passwd');
+    expect(result).toBeNull();
+  });
+
+  it('should reject --config /proc/self/environ', () => {
+    const result = resolveSafeConfigPath('/proc/self/environ');
+    expect(result).toBeNull();
+  });
+
+  it('should reject --config pointing outside cwd and home', () => {
+    const result = resolveSafeConfigPath('/usr/share/secrets.json');
+    expect(result).toBeNull();
   });
 });

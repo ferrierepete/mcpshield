@@ -370,6 +370,17 @@ import type {
 } from '@ferrierepete/mcpshield';
 ```
 
+## Security Hardening
+
+MCPShield includes several built-in protections to prevent misuse:
+
+- **Path traversal prevention** — all config paths (whether from `--config`, `MCP_CONFIG_PATH`, or auto-detection) are validated via `resolveSafeConfigPath()`. Only paths within your current working directory or home directory are allowed. Attempts to load files like `/etc/passwd` or `/proc/self/environ` are rejected with a clear error
+- **Config backup before writes** — the `fix` command creates a `.bak` backup of your config file before applying any changes
+- **Secret key sanitization** — the `fix` command sanitizes env var key names containing shell metacharacters (e.g. `$(cmd)`, `` `cmd` ``, `;rm -rf`) by deleting the dangerous key and replacing it with a safe alphanumeric name
+- **AI response size limits** — AI provider responses are capped at 1 MB to prevent memory exhaustion from unbounded responses
+- **Registry fail-closed** — when npm/PyPI registry checks fail (network errors, HTTP 500, rate limits), packages are treated as unverified rather than silently passing
+- **Secret values never sent to AI** — only env var *keys* (not values) are included in AI evaluation prompts
+
 ## Config Locations
 
 MCPShield auto-discovers configs from all major MCP clients:

@@ -2,7 +2,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
-import { autoDetectConfig, discoverConfigs, loadConfig } from './scanners/config-loader.js';
+import { autoDetectConfig, discoverConfigs, loadConfig, resolveSafeConfigPath } from './scanners/config-loader.js';
 import { scanAllServers, scanAllServersWithRegistry } from './scanners/index.js';
 import { severityIcon } from './utils/helpers.js';
 import { ScanResult, OWASP_MCP_TOP_CATEGORIES, Severity } from './types/index.js';
@@ -13,7 +13,7 @@ import * as fs from 'fs';
 import { watch } from 'fs';
 import { resolveAIConfig, evaluateWithAI, applyAIEvaluations, filterByConfidence } from './ai/index.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
 
 const program = new Command();
 
@@ -52,9 +52,14 @@ program
     let configPath: string;
 
     if (opts.config) {
+      const safePath = resolveSafeConfigPath(opts.config);
+      if (!safePath) {
+        console.error(chalk.red(`Error: Config path "${opts.config}" is outside allowed directories (cwd and home). Refusing to load.`));
+        process.exit(1);
+      }
       try {
-        config = loadConfig(opts.config);
-        configPath = opts.config;
+        config = loadConfig(safePath);
+        configPath = safePath;
       } catch (e: any) {
         console.error(chalk.red(`Error: Cannot load config from ${opts.config}: ${e.message}`));
         process.exit(1);
@@ -197,9 +202,14 @@ program
     let configPath: string;
 
     if (opts.config) {
+      const safePath = resolveSafeConfigPath(opts.config);
+      if (!safePath) {
+        console.error(chalk.red(`Error: Config path "${opts.config}" is outside allowed directories (cwd and home). Refusing to load.`));
+        process.exit(1);
+      }
       try {
-        config = loadConfig(opts.config);
-        configPath = opts.config;
+        config = loadConfig(safePath);
+        configPath = safePath;
       } catch (e: any) {
         console.error(chalk.red(`Error: Cannot load config from ${opts.config}: ${e.message}`));
         process.exit(1);
@@ -258,7 +268,12 @@ program
     let configPath: string;
 
     if (opts.config) {
-      configPath = opts.config;
+      const safePath = resolveSafeConfigPath(opts.config);
+      if (!safePath) {
+        console.error(chalk.red(`Error: Config path "${opts.config}" is outside allowed directories (cwd and home). Refusing to load.`));
+        process.exit(1);
+      }
+      configPath = safePath;
     } else {
       const auto = autoDetectConfig(true);
       if (!auto) {
