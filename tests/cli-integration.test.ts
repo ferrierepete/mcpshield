@@ -104,9 +104,10 @@ describe('CLI Integration', () => {
     it('MCP_CONFIG_PATH with non-existent path falls back to CONFIG_PATHS auto-detection', async () => {
       // loadConfigFromPath returns null for non-existent paths → falls back to CONFIG_PATHS
       const r = await runCli(['scan'], { MCP_CONFIG_PATH: '/tmp/does-not-exist.json' });
-      // Falls back to ~/.claude.json or other detected config
+      // Falls back to ~/.claude.json or other detected config.
+      // If no config is found at all, "No MCP configuration found" goes to stderr.
       expect([0, 1, 2]).toContain(r.code);
-      expect(r.stdout).toMatch(/Security Report|No MCP configuration found/);
+      expect(r.stdout + r.stderr).toMatch(/Security Report|No MCP configuration found/);
     });
   });
 
