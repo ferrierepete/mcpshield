@@ -13,7 +13,7 @@ import * as fs from 'fs';
 import { watch } from 'fs';
 import { resolveAIConfig, evaluateWithAI, applyAIEvaluations, filterByConfidence } from './ai/index.js';
 
-const VERSION = '0.2.1';
+const VERSION = '0.2.2';
 
 const program = new Command();
 

@@ -1,6 +1,6 @@
 {
   "name": "@ferrierepete/mcpshield",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Security scanner for MCP (Model Context Protocol) servers — detect supply chain risks, permission overreach, and misconfigurations",
   "type": "module",
   "main": "dist/index.js",
@@ -22,7 +22,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsc && chmod +x dist/cli.js",
+    "build": "tsc && cp src/data/*.json dist/data/ && chmod +x dist/cli.js",
     "dev": "tsx src/cli.ts",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
