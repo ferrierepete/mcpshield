@@ -8,6 +8,8 @@ All notable changes to MCPShield are documented here.
 - **Build: copy JSON data files to `dist/`** — `tsc` only compiles `.ts` files, so the JSON data files (`trusted-packages.json`, `risky-packages.json`, `suspicious-patterns.json`) loaded at runtime via `readFileSync` were missing in `dist/data/` on clean builds, causing all scan/fix/watch commands to crash
 - **Lint: remove unused imports and variables** — removed unused `existsSync`/`cpSync` from `src/fix/index.ts` and unused `getAvailableFixes` from `src/cli.ts`
 - **CI: add build step before tests** — CLI integration tests spawn `node dist/cli.js`, which requires a prior build
+- **CI: fix `MCP_CONFIG_PATH` fallback test** — in CI environments with no MCP config files installed, "No MCP configuration found" is emitted to stderr; the test now checks both stdout and stderr
+- **Test type errors** — fixed 5 pre-existing TypeScript errors in test files (`withText` generic constraint, `process.env` spread type, `fs.mkdirSync` return in hooks)
 
 ## [0.2.1] — 2026-04-04
 
