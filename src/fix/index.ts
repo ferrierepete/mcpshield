@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, cpSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { MCPConfig, Finding } from '../types/index.js';
 
 interface FixAction {

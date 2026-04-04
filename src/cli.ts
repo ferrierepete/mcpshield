@@ -8,7 +8,7 @@ import { severityIcon } from './utils/helpers.js';
 import { ScanResult, OWASP_MCP_TOP_CATEGORIES, Severity } from './types/index.js';
 import { toSarif } from './formatters/sarif.js';
 import { loadMCPShieldConfig, severityMeetsThreshold } from './config/index.js';
-import { applyFixes, getAvailableFixes, writeConfig } from './fix/index.js';
+import { applyFixes, writeConfig } from './fix/index.js';
 import * as fs from 'fs';
 import { watch } from 'fs';
 import { resolveAIConfig, evaluateWithAI, applyAIEvaluations, filterByConfidence } from './ai/index.js';
@@ -227,8 +227,6 @@ program
     // Scan first
     const result = scanAllServers(config.mcpServers, configPath);
     const allFindings = result.servers.flatMap(s => s.findings);
-    const available = getAvailableFixes(allFindings);
-
     console.log(chalk.bold.cyan('\n🔧 MCPShield Auto-Fix\n'));
     console.log(chalk.dim(`Config: ${configPath}\n`));
 
