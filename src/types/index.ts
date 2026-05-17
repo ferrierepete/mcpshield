@@ -69,14 +69,14 @@ export interface ServerScanResult {
 }
 
 export const OWASP_MCP_TOP_CATEGORIES = [
-  'MCP-01: Malicious Server Distribution',
-  'MCP-02: Tool Poisoning',
-  'MCP-03: Rug Pull Attacks',
-  'MCP-04: Cross-Origin Resource Sharing',
-  'MCP-05: Prompt Injection via Tools',
-  'MCP-06: Unauthorized Tool Access',
-  'MCP-07: Data Exfiltration',
-  'MCP-08: Identity Spoofing',
-  'MCP-09: Token/Secret Exposure',
-  'MCP-10: Dependency Confusion',
+  'MCP01:2025 - Token Mismanagement & Secret Exposure',
+  'MCP02:2025 - Tool Poisoning',
+  'MCP03:2025 - Privilege Escalation via Scope Creep',
+  'MCP04:2025 - Software Supply Chain Attacks & Dependency Tampering',
+  'MCP05:2025 - Command Injection & Execution',
+  'MCP06:2025 - Intent Flow Subversion',
+  'MCP07:2025 - Insufficient Authentication & Authorization',
+  'MCP08:2025 - Lack of Audit and Telemetry',
+  'MCP09:2025 - Shadow MCP Servers',
+  'MCP10:2025 - Context Injection & Over-Sharing',
 ] as const;

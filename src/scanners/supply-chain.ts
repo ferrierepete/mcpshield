@@ -21,7 +21,7 @@ export function scanSupplyChain(name: string, config: MCPServerConfig): Finding[
           category: 'supply-chain',
           serverName: name,
           remediation: `Pin the package version: "${pkgArg}@<exact-version>" or use a lockfile.`,
-          references: ['https://owasp.org/www-project-mcp-top/', 'MCP-10: Dependency Confusion'],
+          references: ['https://owasp.org/www-project-mcp-top-10/', 'MCP04:2025 - Software Supply Chain Attacks & Dependency Tampering'],
         }));
       }
 
@@ -46,7 +46,7 @@ export function scanSupplyChain(name: string, config: MCPServerConfig): Finding[
           category: 'supply-chain',
           serverName: name,
           remediation: `Verify the package source, check its npm page, review its GitHub repo, and confirm the author is legitimate before trusting.`,
-          references: ['MCP-01: Malicious Server Distribution', 'MCP-03: Rug Pull Attacks'],
+          references: ['MCP09:2025 - Shadow MCP Servers', 'MCP04:2025 - Software Supply Chain Attacks & Dependency Tampering'],
         }));
       }
     }
@@ -63,7 +63,7 @@ export function scanSupplyChain(name: string, config: MCPServerConfig): Finding[
         category: 'supply-chain',
         serverName: name,
         remediation: 'Pin the package version, verify the PyPI page, and check for known vulnerabilities.',
-        references: ['MCP-10: Dependency Confusion'],
+        references: ['MCP04:2025 - Software Supply Chain Attacks & Dependency Tampering'],
       }));
     }
   }

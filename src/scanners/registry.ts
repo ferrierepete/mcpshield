@@ -102,7 +102,7 @@ export async function scanRegistry(name: string, config: MCPServerConfig): Promi
         remediation: result.error
           ? `Resolve the network error: ${result.error}. If offline, registry checks are unavailable.`
           : 'Verify the package name is correct. If this is a private package, ensure your npm configuration is set up correctly.',
-        references: result.error ? [] : ['MCP-10: Dependency Confusion', 'MCP-01: Malicious Server Distribution'],
+        references: result.error ? [] : ['MCP04:2025 - Software Supply Chain Attacks & Dependency Tampering', 'MCP09:2025 - Shadow MCP Servers'],
       }));
       return findings;
     }
@@ -122,7 +122,7 @@ export async function scanRegistry(name: string, config: MCPServerConfig): Promi
             category: 'supply-chain',
             serverName: name,
             remediation: 'Carefully review the source code, check the maintainer history, and verify this is the intended package.',
-            references: ['MCP-01: Malicious Server Distribution'],
+            references: ['MCP09:2025 - Shadow MCP Servers'],
           }));
         }
       }
@@ -186,7 +186,7 @@ export async function scanRegistry(name: string, config: MCPServerConfig): Promi
         remediation: result.error
           ? `Resolve the network error: ${result.error}. If offline, registry checks are unavailable.`
           : 'Verify the package name is correct. If this is a private package, ensure your pip configuration is set up correctly.',
-        references: result.error ? [] : ['MCP-10: Dependency Confusion'],
+        references: result.error ? [] : ['MCP04:2025 - Software Supply Chain Attacks & Dependency Tampering'],
       }));
     }
   }

@@ -20,8 +20,8 @@ describe('Helpers', () => {
         title: 'Test 2', description: 'desc', severity: 'medium',
         category: 'configuration', serverName: 'test', remediation: 'fix it',
       });
-      expect(f1.id).toBe('MCP-001');
-      expect(f2.id).toBe('MCP-002');
+      expect(f1.id).toBe('MCPS-001');
+      expect(f2.id).toBe('MCPS-002');
     });
 
     it('should track count', () => {
@@ -45,7 +45,7 @@ describe('Helpers', () => {
         title: 'Test', description: 'desc', severity: 'low',
         category: 'configuration', serverName: 'test', remediation: 'fix it',
       });
-      expect(f.id).toBe('MCP-001'); // Independent counter
+      expect(f.id).toBe('MCPS-001'); // Independent counter
     });
   });
 
@@ -60,15 +60,15 @@ describe('Helpers', () => {
         title: 'B', description: 'd', severity: 'low',
         category: 'configuration', serverName: 's', remediation: 'r',
       });
-      expect(f1.id).toBe('MCP-001');
-      expect(f2.id).toBe('MCP-002');
+      expect(f1.id).toBe('MCPS-001');
+      expect(f2.id).toBe('MCPS-002');
 
       resetCounter();
       const f3 = createFinding({
         title: 'C', description: 'd', severity: 'low',
         category: 'configuration', serverName: 's', remediation: 'r',
       });
-      expect(f3.id).toBe('MCP-001');
+      expect(f3.id).toBe('MCPS-001');
     });
   });
 

@@ -8,7 +8,23 @@
     "\\.tk\\/|\\.ml\\/|\\.ga\\/",
     "hookbin\\.com",
     "pipedream\\.net",
-    "burpcollaborator\\.net"
+    "burpcollaborator\\.net",
+    "discord\\.com/api/webhooks",
+    "discordapp\\.com/api/webhooks",
+    "api\\.telegram\\.org/bot",
+    "\\.herokuapp\\.com",
+    "\\.vercel\\.app",
+    "\\.netlify\\.app",
+    "\\.fly\\.dev",
+    "\\.workers\\.dev",
+    "\\.cloudfunctions\\.net",
+    "execute-api\\.[\\w-]+\\.amazonaws\\.com",
+    "bit\\.ly",
+    "t\\.co",
+    "tinyurl\\.com",
+    "goo\\.gl",
+    "docs\\.google\\.com/forms/d/e/",
+    "script\\.google\\.com/macros/s/"
   ],
   "typosquatPatterns": [
     {
@@ -26,6 +42,46 @@
     {
       "original": "@modelcontextprotocol",
       "pattern": "@modeIcontextprotocol"
+    },
+    {
+      "original": "@anthropic",
+      "pattern": "@[a4]nthr[o0]pic"
+    },
+    {
+      "original": "@anthropic",
+      "pattern": "@[a4]ntrhopic"
+    },
+    {
+      "original": "@anthropic",
+      "pattern": "@anthr[o0]p[i1]c"
+    },
+    {
+      "original": "@anthropic",
+      "pattern": "@anthropic-ai"
+    },
+    {
+      "original": "@anthropic",
+      "pattern": "@[a4]nthr[o0]p[i1]c"
+    },
+    {
+      "original": "@openai",
+      "pattern": "@[o0]pen[a4][i1]"
+    },
+    {
+      "original": "@openai",
+      "pattern": "@[o0]penai"
+    },
+    {
+      "original": "@openai",
+      "pattern": "@open[a4][i1]"
+    },
+    {
+      "original": "@openai",
+      "pattern": "@[o0]p3nai"
+    },
+    {
+      "original": "@openai",
+      "pattern": "@open-ai"
     }
   ]
 }

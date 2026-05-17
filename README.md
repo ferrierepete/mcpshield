@@ -161,20 +161,20 @@ MCPShield generates a 0-100 security score:
 
 ## OWASP MCP Top 10
 
-MCPShield maps findings to the [OWASP MCP Top 10](https://owasp.org/www-project-mcp-top/) framework:
+MCPShield maps findings to the [OWASP MCP Top 10](https://owasp.org/www-project-mcp-top-10/) framework:
 
 | ID | Category |
 |----|----------|
-| MCP-01 | Malicious Server Distribution |
-| MCP-02 | Tool Poisoning |
-| MCP-03 | Rug Pull Attacks |
-| MCP-04 | Cross-Origin Resource Sharing |
-| MCP-05 | Prompt Injection via Tools |
-| MCP-06 | Unauthorized Tool Access |
-| MCP-07 | Data Exfiltration |
-| MCP-08 | Identity Spoofing |
-| MCP-09 | Token/Secret Exposure |
-| MCP-10 | Dependency Confusion |
+| MCP01:2025 | Token Mismanagement & Secret Exposure |
+| MCP02:2025 | Tool Poisoning |
+| MCP03:2025 | Privilege Escalation via Scope Creep |
+| MCP04:2025 | Software Supply Chain Attacks & Dependency Tampering |
+| MCP05:2025 | Command Injection & Execution |
+| MCP06:2025 | Intent Flow Subversion |
+| MCP07:2025 | Insufficient Authentication & Authorization |
+| MCP08:2025 | Lack of Audit and Telemetry |
+| MCP09:2025 | Shadow MCP Servers |
+| MCP10:2025 | Context Injection & Over-Sharing |
 
 ## Example Output
 
@@ -194,7 +194,7 @@ Findings: 2 critical  3 high  1 medium
    🔴 Broad Filesystem Access [MCP-001]
     Server has access to path "/". This grants read/write access to sensitive system directories.
     → Fix: Restrict filesystem access to only the specific directories this server needs.
-    Refs: MCP-06: Unauthorized Tool Access, MCP-07: Data Exfiltration
+    Refs: MCP03:2025 - Privilege Escalation via Scope Creep, MCP07:2025 - Insufficient Authentication & Authorization
 
    🟠 Sensitive Credentials in Config [MCP-002]
     Found 1 sensitive environment variable(s): AWS_SECRET_ACCESS_KEY

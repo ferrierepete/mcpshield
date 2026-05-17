@@ -33,7 +33,7 @@ export function scanThreats(name: string, config: MCPServerConfig): Finding[] {
             category: 'supply-chain',
             serverName: name,
             remediation: `Verify this is the intended package. The trusted package is "${original}".`,
-            references: ['MCP-08: Identity Spoofing', 'MCP-01: Malicious Server Distribution'],
+            references: ['MCP09:2025 - Shadow MCP Servers', 'MCP04:2025 - Software Supply Chain Attacks & Dependency Tampering'],
           }));
         }
       }
@@ -53,7 +53,7 @@ export function scanThreats(name: string, config: MCPServerConfig): Finding[] {
         category: 'data-exposure',
         serverName: name,
         remediation: 'Investigate this URL immediately. Remove the server if the destination is suspicious.',
-        references: ['MCP-07: Data Exfiltration'],
+        references: ['MCP07:2025 - Insufficient Authentication & Authorization'],
       }));
     }
   }

@@ -185,7 +185,7 @@ program
   .description('Show OWASP MCP Top 10 security framework reference')
   .action(() => {
     console.log(chalk.bold.cyan('\n🛡️  OWASP MCP Top 10 Security Framework\n'));
-    console.log(chalk.dim('Reference: https://owasp.org/www-project-mcp-top/\n'));
+    console.log(chalk.dim('Reference: https://owasp.org/www-project-mcp-top-10/\n'));
     for (const cat of OWASP_MCP_TOP_CATEGORIES) {
       console.log(`  ${chalk.yellow('▸')} ${cat}`);
     }

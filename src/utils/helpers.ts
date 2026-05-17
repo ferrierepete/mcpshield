@@ -14,7 +14,7 @@ export class ScanContext {
   }): Finding {
     this.findingCounter++;
     return {
-      id: `MCP-${String(this.findingCounter).padStart(3, '0')}`,
+      id: `MCPS-${String(this.findingCounter).padStart(3, '0')}`,
       ...opts,
     };
   }

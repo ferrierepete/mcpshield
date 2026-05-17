@@ -56,7 +56,7 @@ export function scanConfiguration(name: string, config: MCPServerConfig): Findin
           category: 'configuration',
           serverName: name,
           remediation: 'Review this argument carefully. Avoid shell metacharacters in MCP server arguments.',
-          references: ['MCP-05: Prompt Injection via Tools'],
+          references: ['MCP05:2025 - Command Injection & Execution'],
         }));
       }
     }
@@ -71,7 +71,7 @@ export function scanConfiguration(name: string, config: MCPServerConfig): Findin
       category: 'data-exposure',
       serverName: name,
       remediation: 'Review the arguments carefully. Ensure no sensitive data is being sent to external endpoints.',
-      references: ['MCP-07: Data Exfiltration'],
+      references: ['MCP07:2025 - Insufficient Authentication & Authorization'],
     }));
   }
 

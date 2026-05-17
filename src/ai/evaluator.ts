@@ -24,7 +24,7 @@ export interface AIEvaluationResult {
 const SYSTEM_PROMPT = `You are a security expert specializing in MCP (Model Context Protocol) server configurations. Your job is to evaluate security findings and determine whether each is a true positive or a false positive.
 
 For each finding, respond with a JSON array of objects with these fields:
-- "findingId": the finding ID (e.g. "MCP-001")
+- "findingId": the finding ID (e.g. "MCPS-001")
 - "verdict": one of "confirmed", "likely-false-positive", or "needs-review"
 - "confidence": a number from 0.0 to 1.0 indicating your confidence
 - "reasoning": a brief explanation (1-2 sentences)

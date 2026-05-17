@@ -182,16 +182,16 @@ describe('CLI Integration', () => {
     });
 
     it('--ignore <id> filters out a specific finding by ID', async () => {
-      // MCP-002 = Broad Filesystem Access (critical) — use docker-config
-      const r = await runCli(['scan', '--config', DOCKER_CONFIG, '--ignore', 'MCP-101', '--no-spinner']);
-      // MCP-101 (privileged container) should not appear in output
-      expect(r.stdout).not.toContain('MCP-101');
+      // MCPS-002 = Broad Filesystem Access (critical) — use docker-config
+      const r = await runCli(['scan', '--config', DOCKER_CONFIG, '--ignore', 'MCPS-101', '--no-spinner']);
+      // MCPS-101 (privileged container) should not appear in output
+      expect(r.stdout).not.toContain('MCPS-101');
     });
 
     it('--ignore <id> filters critical finding and reduces exit code', async () => {
-      // Ignore MCP-101 (privileged container) — remaining findings should still be critical
-      const r = await runCli(['scan', '--config', DOCKER_CONFIG, '--ignore', 'MCP-101', '--no-spinner']);
-      // Exit code still 2 because docker-socket (MCP-104) is also critical
+      // Ignore MCPS-101 (privileged container) — remaining findings should still be critical
+      const r = await runCli(['scan', '--config', DOCKER_CONFIG, '--ignore', 'MCPS-101', '--no-spinner']);
+      // Exit code still 2 because docker-socket (MCPS-104) is also critical
       expect(r.code).toBe(2);
     });
 
@@ -210,9 +210,9 @@ describe('CLI Integration', () => {
     it('--ignore accepts multiple space-separated values', async () => {
       const r = await runCli([
         'scan', '--config', TEST_CONFIG,
-        '--ignore', 'MCP-003', 'Sensitive Credentials in Config', '--no-spinner'
+        '--ignore', 'MCPS-003', 'Sensitive Credentials in Config', '--no-spinner'
       ]);
-      expect(r.stdout).not.toContain('MCP-003');
+      expect(r.stdout).not.toContain('MCPS-003');
       expect(r.stdout).not.toContain('Sensitive Credentials in Config');
     });
   });
@@ -356,13 +356,13 @@ describe('CLI Integration', () => {
       const r = await runCli(['owasp']);
       expect(r.code).toBe(0);
       expect(r.stdout).toContain('OWASP MCP Top 10');
-      expect(r.stdout).toContain('MCP-01');
+      expect(r.stdout).toContain('MCP01:2025');
     });
 
     it('shows at least 10 categories', async () => {
       const r = await runCli(['owasp']);
-      // Categories are in "MCP-01", "MCP-02", etc. format
-      const matches = r.stdout.match(/MCP-\d+/g);
+      // Categories are in "MCP01:2025", "MCP02:2025", etc. format
+      const matches = r.stdout.match(/MCP\d+:2025/g);
       expect((matches ?? []).length).toBeGreaterThanOrEqual(10);
     });
   });

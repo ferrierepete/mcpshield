@@ -51,7 +51,7 @@ function scanDockerConfig(name: string, args: string[], argsStr: string): Findin
         category: 'permissions',
         serverName: name,
         remediation: `Remove "${flag}" and use the minimum required capabilities. Prefer --cap-add with specific capabilities.`,
-        references: ['MCP-06: Unauthorized Tool Access'],
+        references: ['MCP03:2025 - Privilege Escalation via Scope Creep'],
       }));
     }
   }
@@ -66,7 +66,7 @@ function scanDockerConfig(name: string, args: string[], argsStr: string): Findin
         category: 'permissions',
         serverName: name,
         remediation: 'Mount only the specific directories the server needs. Avoid mounting system directories or the Docker socket.',
-        references: ['MCP-06: Unauthorized Tool Access', 'MCP-07: Data Exfiltration'],
+        references: ['MCP03:2025 - Privilege Escalation via Scope Creep', 'MCP07:2025 - Insufficient Authentication & Authorization'],
       }));
     }
   }
@@ -100,7 +100,7 @@ function scanDockerConfig(name: string, args: string[], argsStr: string): Findin
           category: 'supply-chain',
           serverName: name,
           remediation: `Pin the Docker image to a specific version or SHA256 digest, e.g. "${imageArg.split(':')[0]}@sha256:<digest>".`,
-          references: ['MCP-01: Malicious Server Distribution', 'MCP-03: Rug Pull Attacks'],
+          references: ['MCP04:2025 - Software Supply Chain Attacks & Dependency Tampering', 'MCP09:2025 - Shadow MCP Servers'],
         }));
       }
     }
@@ -121,7 +121,7 @@ function scanDockerConfig(name: string, args: string[], argsStr: string): Findin
             category: 'network',
             serverName: name,
             remediation: `Bind to localhost: "127.0.0.1:${portMapping.split(':').pop()}" instead.`,
-            references: ['MCP-04: Cross-Origin Resource Sharing'],
+            references: ['MCP07:2025 - Insufficient Authentication & Authorization'],
           }));
         }
       }
@@ -144,7 +144,7 @@ function scanHttpTransport(name: string, config: MCPServerConfig): Finding[] {
       category: 'network',
       serverName: name,
       remediation: 'Use HTTPS for all remote MCP server connections.',
-      references: ['MCP-09: Token/Secret Exposure', 'MCP-07: Data Exfiltration'],
+      references: ['MCP01:2025 - Token Mismanagement & Secret Exposure', 'MCP07:2025 - Insufficient Authentication & Authorization'],
     }));
   }
 
@@ -158,7 +158,7 @@ function scanHttpTransport(name: string, config: MCPServerConfig): Finding[] {
       category: 'authentication',
       serverName: name,
       remediation: 'Add authentication headers (e.g., Authorization, X-API-Key) for remote MCP servers.',
-      references: ['MCP-08: Identity Spoofing'],
+      references: ['MCP09:2025 - Shadow MCP Servers'],
     }));
   }
 

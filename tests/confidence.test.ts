@@ -4,7 +4,7 @@ import type { Finding, MCPServerConfig } from '../src/types/index.js';
 
 function makeFinding(overrides: Partial<Finding> & { title: string; severity: Finding['severity'] }): Finding {
   return {
-    id: 'MCP-001',
+    id: 'MCPS-001',
     description: 'test',
     category: 'configuration',
     serverName: 'test-server',

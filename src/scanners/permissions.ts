@@ -13,6 +13,26 @@ const SENSITIVE_ENV_KEYS = [
   'DATABASE_URL', 'DB_PASSWORD',
   'PRIVATE_KEY', 'SECRET_KEY',
   'STRIPE_SECRET_KEY', 'SLACK_TOKEN',
+  'AZURE_CLIENT_SECRET', 'AZURE_TENANT_ID',
+  'HEROKU_API_KEY',
+  'TWILIO_AUTH_TOKEN',
+  'SENDGRID_API_KEY',
+  'MAILGUN_API_KEY',
+  'CLOUDFLARE_API_TOKEN',
+  'DIGITALOCEAN_TOKEN',
+  'GOOGLE_APPLICATION_CREDENTIALS',
+  'NPM_TOKEN', 'PYPI_API_TOKEN',
+  'VAULT_TOKEN',
+  'KUBERNETES_TOKEN', 'SERVICE_ACCOUNT_KEY',
+  'JWT_SECRET', 'ENCRYPTION_KEY',
+];
+
+const SECRET_VALUE_PATTERNS: { pattern: RegExp; name: string }[] = [
+  { pattern: /^AKIA[A-Z0-9]{16}$/, name: 'AWS Access Key' },
+  { pattern: /^ghp_[a-zA-Z0-9]{36}$/, name: 'GitHub Personal Access Token' },
+  { pattern: /^gho_[a-zA-Z0-9]{36}$/, name: 'GitHub OAuth Token' },
+  { pattern: /^xox[bpors]-[a-zA-Z0-9-]+/, name: 'Slack Token' },
+  { pattern: /^sk_(live|test)_[a-zA-Z0-9]+/, name: 'Stripe Secret Key' },
 ];
 
 
@@ -36,7 +56,7 @@ export function scanPermissions(name: string, config: MCPServerConfig): Finding[
         category: 'permissions',
         serverName: name,
         remediation: `Restrict filesystem access to only the specific directories this server needs. Replace "${dangerousPath}" with a scoped path.`,
-        references: ['MCP-06: Unauthorized Tool Access', 'MCP-07: Data Exfiltration'],
+        references: ['MCP03:2025 - Privilege Escalation via Scope Creep', 'MCP07:2025 - Insufficient Authentication & Authorization'],
       }));
       break; // One finding per server for this category
     }
@@ -55,8 +75,27 @@ export function scanPermissions(name: string, config: MCPServerConfig): Finding[
       category: 'authentication',
       serverName: name,
       remediation: 'Use a secrets manager or environment variable injection instead of hardcoding credentials in the config file.',
-      references: ['MCP-09: Token/Secret Exposure'],
+      references: ['MCP01:2025 - Token Mismanagement & Secret Exposure'],
     }));
+  }
+
+  // Check env values against known secret patterns
+  for (const [key, value] of Object.entries(env)) {
+    if (!value || value.includes('${')) continue;
+    for (const { pattern, name } of SECRET_VALUE_PATTERNS) {
+      if (pattern.test(value)) {
+        findings.push(createFinding({
+          title: 'Secret Value Pattern Detected',
+          description: `Environment variable "${key}" contains a value matching ${name}. Hardcoded secrets in config files are a security risk.`,
+          severity: 'high',
+          category: 'authentication',
+          serverName: name,
+          remediation: 'Use a secrets manager or environment variable injection instead of hardcoding credentials in the config file.',
+          references: ['MCP01:2025 - Token Mismanagement & Secret Exposure'],
+        }));
+        break;
+      }
+    }
   }
 
   // Check for environment variables with overly permissive values
@@ -82,7 +121,7 @@ export function scanPermissions(name: string, config: MCPServerConfig): Finding[
       category: 'network',
       serverName: name,
       remediation: 'Bind to localhost (127.0.0.1) unless remote access is explicitly needed. Use authentication if binding to non-localhost.',
-      references: ['MCP-04: Cross-Origin Resource Sharing'],
+      references: ['MCP07:2025 - Insufficient Authentication & Authorization'],
     }));
   }
 
@@ -97,7 +136,7 @@ export function scanPermissions(name: string, config: MCPServerConfig): Finding[
         category: 'permissions',
         serverName: name,
         remediation: `Remove "${flag}" and use specific, scoped permissions instead.`,
-        references: ['MCP-06: Unauthorized Tool Access'],
+        references: ['MCP03:2025 - Privilege Escalation via Scope Creep'],
       }));
     }
   }

@@ -290,7 +290,7 @@ describe('INFO-2: AI parse failure surfacing', () => {
     } as any);
 
     const findings = [{
-      id: 'MCP-001',
+      id: 'MCPS-001',
       title: 'Test Finding',
       description: 'Test',
       severity: 'high' as const,
@@ -317,18 +317,18 @@ describe('INFO-2: AI parse failure surfacing', () => {
         choices: [{
           message: {
             content: JSON.stringify([
-              { findingId: 'MCP-001', verdict: 'confirmed', confidence: 0.9, reasoning: 'Real risk' },
+              { findingId: 'MCPS-001', verdict: 'confirmed', confidence: 0.9, reasoning: 'Real risk' },
             ]),
           },
         }],
         model: 'gpt-4o-mini',
         usage: { prompt_tokens: 100, completion_tokens: 50 },
       }),
-      text: async () => '{"choices":[{"message":{"content":"[{\\"findingId\\":\\"MCP-001\\",\\"verdict\\":\\"confirmed\\",\\"confidence\\":0.9,\\"reasoning\\":\\"Real risk\\"}]"}}],"model":"gpt-4o-mini","usage":{"prompt_tokens":100,"completion_tokens":50}}',
+      text: async () => '{"choices":[{"message":{"content":"[{\\"findingId\\":\\"MCPS-001\\",\\"verdict\\":\\"confirmed\\",\\"confidence\\":0.9,\\"reasoning\\":\\"Real risk\\"}]"}}],"model":"gpt-4o-mini","usage":{"prompt_tokens":100,"completion_tokens":50}}',
     } as any);
 
     const findings = [{
-      id: 'MCP-001',
+      id: 'MCPS-001',
       title: 'Test Finding',
       description: 'Test',
       severity: 'high' as const,
@@ -355,7 +355,7 @@ describe('INFO-2: AI parse failure surfacing', () => {
     } as any);
 
     const findings = [{
-      id: 'MCP-001',
+      id: 'MCPS-001',
       title: 'Test Finding',
       description: 'Test',
       severity: 'high' as const,

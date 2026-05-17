@@ -27,12 +27,12 @@ describe('AI Evaluator', () => {
   describe('applyAIEvaluations', () => {
     it('should apply AI verdicts to matching findings', () => {
       const findings: Finding[] = [
-        makeFinding('MCP-001', 'Unpinned Package Version'),
-        makeFinding('MCP-002', 'Sensitive Credentials in Config'),
+        makeFinding('MCPS-001', 'Unpinned Package Version'),
+        makeFinding('MCPS-002', 'Sensitive Credentials in Config'),
       ];
       const evaluations = [
-        { findingId: 'MCP-001', verdict: 'likely-false-positive' as const, confidence: 0.3, reasoning: 'Trusted package' },
-        { findingId: 'MCP-002', verdict: 'confirmed' as const, confidence: 0.95, reasoning: 'Real hardcoded secret' },
+        { findingId: 'MCPS-001', verdict: 'likely-false-positive' as const, confidence: 0.3, reasoning: 'Trusted package' },
+        { findingId: 'MCPS-002', verdict: 'confirmed' as const, confidence: 0.95, reasoning: 'Real hardcoded secret' },
       ];
 
       const result = applyAIEvaluations(findings, evaluations);
@@ -44,10 +44,10 @@ describe('AI Evaluator', () => {
 
     it('should leave findings unchanged when no matching evaluation', () => {
       const findings: Finding[] = [
-        makeFinding('MCP-001', 'Unpinned Package Version'),
+        makeFinding('MCPS-001', 'Unpinned Package Version'),
       ];
       const evaluations = [
-        { findingId: 'MCP-999', verdict: 'confirmed' as const, confidence: 0.9, reasoning: 'Different finding' },
+        { findingId: 'MCPS-999', verdict: 'confirmed' as const, confidence: 0.9, reasoning: 'Different finding' },
       ];
 
       const result = applyAIEvaluations(findings, evaluations);
@@ -61,7 +61,7 @@ describe('AI Evaluator', () => {
     });
 
     it('should handle empty evaluations array', () => {
-      const findings: Finding[] = [makeFinding('MCP-001', 'Test')];
+      const findings: Finding[] = [makeFinding('MCPS-001', 'Test')];
       const result = applyAIEvaluations(findings, []);
       expect(result).toHaveLength(1);
       expect(result[0].aiVerdict).toBeUndefined();
@@ -89,7 +89,7 @@ describe('AI Evaluator', () => {
           choices: [{
             message: {
               content: JSON.stringify([
-                { findingId: 'MCP-001', verdict: 'confirmed', confidence: 0.9, reasoning: 'Real risk' },
+                { findingId: 'MCPS-001', verdict: 'confirmed', confidence: 0.9, reasoning: 'Real risk' },
               ]),
             },
           }],
@@ -99,7 +99,7 @@ describe('AI Evaluator', () => {
       });
       global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
-      const findings = [makeFinding('MCP-001', 'Test Finding')];
+      const findings = [makeFinding('MCPS-001', 'Test Finding')];
       const configs: Record<string, MCPServerConfig> = {
         'test-server': { command: 'npx', args: ['-y', 'some-pkg'] },
       };
@@ -120,7 +120,7 @@ describe('AI Evaluator', () => {
           content: [{
             type: 'text',
             text: JSON.stringify([
-              { findingId: 'MCP-001', verdict: 'likely-false-positive', confidence: 0.2, reasoning: 'Trusted pkg' },
+              { findingId: 'MCPS-001', verdict: 'likely-false-positive', confidence: 0.2, reasoning: 'Trusted pkg' },
             ]),
           }],
           model: 'claude-sonnet-4-20250514',
@@ -129,7 +129,7 @@ describe('AI Evaluator', () => {
       });
       global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
-      const findings = [makeFinding('MCP-001', 'Test')];
+      const findings = [makeFinding('MCPS-001', 'Test')];
       const aiConfig: AIConfig = { provider: 'anthropic', apiKey: 'test-key' };
 
       const result = await evaluateWithAI(findings, {}, aiConfig);
@@ -149,7 +149,7 @@ describe('AI Evaluator', () => {
             content: {
               parts: [{
                 text: JSON.stringify([
-                  { findingId: 'MCP-001', verdict: 'needs-review', confidence: 0.5, reasoning: 'Unclear' },
+                  { findingId: 'MCPS-001', verdict: 'needs-review', confidence: 0.5, reasoning: 'Unclear' },
                 ]),
               }],
             },
@@ -159,7 +159,7 @@ describe('AI Evaluator', () => {
       });
       global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
-      const findings = [makeFinding('MCP-001', 'Test')];
+      const findings = [makeFinding('MCPS-001', 'Test')];
       const aiConfig: AIConfig = { provider: 'gemini', apiKey: 'test-key' };
 
       const result = await evaluateWithAI(findings, {}, aiConfig);
@@ -182,7 +182,7 @@ describe('AI Evaluator', () => {
       });
       global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
-      const findings = [makeFinding('MCP-001', 'Test')];
+      const findings = [makeFinding('MCPS-001', 'Test')];
       const aiConfig: AIConfig = { provider: 'openai', apiKey: 'test-key' };
 
       const result = await evaluateWithAI(findings, {}, aiConfig);
@@ -199,7 +199,7 @@ describe('AI Evaluator', () => {
       };
       global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
-      const findings = [makeFinding('MCP-001', 'Test')];
+      const findings = [makeFinding('MCPS-001', 'Test')];
       const aiConfig: AIConfig = { provider: 'openai', apiKey: 'bad-key' };
 
       await expect(evaluateWithAI(findings, {}, aiConfig)).rejects.toThrow('OpenAI API error (401)');
@@ -211,7 +211,7 @@ describe('AI Evaluator', () => {
         json: async () => ({
           choices: [{
             message: {
-              content: '```json\n[{\"findingId\":\"MCP-001\",\"verdict\":\"confirmed\",\"confidence\":0.85,\"reasoning\":\"Real risk\"}]\n```',
+              content: '```json\n[{\"findingId\":\"MCPS-001\",\"verdict\":\"confirmed\",\"confidence\":0.85,\"reasoning\":\"Real risk\"}]\n```',
             },
           }],
           model: 'gpt-4o-mini',
@@ -219,7 +219,7 @@ describe('AI Evaluator', () => {
       });
       global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
-      const findings = [makeFinding('MCP-001', 'Test')];
+      const findings = [makeFinding('MCPS-001', 'Test')];
       const aiConfig: AIConfig = { provider: 'openai', apiKey: 'test-key' };
 
       const result = await evaluateWithAI(findings, {}, aiConfig);
@@ -235,7 +235,7 @@ describe('AI Evaluator', () => {
             message: {
               content: JSON.stringify(
                 Array.from({ length: 20 }, (_, i) => ({
-                  findingId: `MCP-${String(i + 1).padStart(3, '0')}`,
+                  findingId: `MCPS-${String(i + 1).padStart(3, '0')}`,
                   verdict: 'confirmed',
                   confidence: 0.8,
                   reasoning: 'Test',
@@ -251,7 +251,7 @@ describe('AI Evaluator', () => {
 
       // 25 findings should produce 2 batches (20 + 5)
       const findings = Array.from({ length: 25 }, (_, i) =>
-        makeFinding(`MCP-${String(i + 1).padStart(3, '0')}`, `Finding ${i + 1}`)
+        makeFinding(`MCPS-${String(i + 1).padStart(3, '0')}`, `Finding ${i + 1}`)
       );
       const aiConfig: AIConfig = { provider: 'openai', apiKey: 'test-key' };
 
@@ -267,7 +267,7 @@ describe('AI Evaluator', () => {
           choices: [{
             message: {
               content: JSON.stringify([
-                { findingId: 'MCP-001', verdict: 'confirmed', confidence: 0.9, reasoning: 'Test' },
+                { findingId: 'MCPS-001', verdict: 'confirmed', confidence: 0.9, reasoning: 'Test' },
               ]),
             },
           }],
@@ -276,7 +276,7 @@ describe('AI Evaluator', () => {
       });
       global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
-      const findings = [makeFinding('MCP-001', 'Test')];
+      const findings = [makeFinding('MCPS-001', 'Test')];
       const aiConfig: AIConfig = {
         provider: 'openai',
         apiKey: 'test-key',
@@ -297,7 +297,7 @@ describe('AI Evaluator', () => {
           choices: [{
             message: {
               content: JSON.stringify([
-                { findingId: 'MCP-001', verdict: 'confirmed', confidence: 0.9, reasoning: 'Test' },
+                { findingId: 'MCPS-001', verdict: 'confirmed', confidence: 0.9, reasoning: 'Test' },
               ]),
             },
           }],
@@ -309,7 +309,7 @@ describe('AI Evaluator', () => {
         return Promise.resolve(mockResponse);
       });
 
-      const findings = [makeFinding('MCP-001', 'Test')];
+      const findings = [makeFinding('MCPS-001', 'Test')];
       const configs: Record<string, MCPServerConfig> = {
         'test-server': {
           command: 'npx',
