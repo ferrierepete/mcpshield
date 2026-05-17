@@ -39,6 +39,20 @@ const SEARCH_DIRS = [
   homedir(),
 ];
 
+export function emitConfigIntegrityWarnings(config: MCPShieldConfig): void {
+  if (config.ignore?.length) {
+    console.warn(`⚠ .mcpshieldrc contains ${config.ignore.length} ignore rule${config.ignore.length !== 1 ? 's' : ''} — verify these were not maliciously added`);
+  }
+
+  if (config.trustedPackages?.length) {
+    console.warn(`⚠ .mcpshieldrc adds ${config.trustedPackages.length} trusted package${config.trustedPackages.length !== 1 ? 's' : ''} — verify these are legitimate`);
+  }
+
+  if (config.minConfidence !== undefined && config.minConfidence > 0.8) {
+    console.warn(`⚠ .mcpshieldrc sets high minConfidence (${config.minConfidence}) — this may suppress real findings`);
+  }
+}
+
 export function loadMCPShieldConfig(): MCPShieldConfig {
   for (const dir of SEARCH_DIRS) {
     for (const filename of CONFIG_FILENAMES) {
@@ -46,7 +60,9 @@ export function loadMCPShieldConfig(): MCPShieldConfig {
       if (existsSync(filePath)) {
         try {
           const raw = readFileSync(filePath, 'utf-8');
-          return JSON.parse(raw) as MCPShieldConfig;
+          const config = JSON.parse(raw) as MCPShieldConfig;
+          emitConfigIntegrityWarnings(config);
+          return config;
         } catch {
           // Silently skip malformed config files
         }

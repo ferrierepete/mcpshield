@@ -100,6 +100,22 @@ describe('Helpers', () => {
       ];
       expect(calculateScore(findings)).toBe(100 - 15 - 8 - 0); // 77
     });
+
+    it('should exclude dormant findings from score calculation', () => {
+      const findings = [
+        { id: '1', title: 'T', description: '[Dormant] Something bad', severity: 'critical' as const, category: 'configuration' as const, serverName: 's', remediation: 'r' },
+        { id: '2', title: 'T', description: 'Active issue', severity: 'medium' as const, category: 'configuration' as const, serverName: 's', remediation: 'r' },
+      ];
+      expect(calculateScore(findings)).toBe(100 - 8); // 92, dormant critical excluded
+    });
+
+    it('should return 100 when all findings are dormant', () => {
+      const findings = [
+        { id: '1', title: 'T', description: '[Dormant] Critical issue', severity: 'critical' as const, category: 'configuration' as const, serverName: 's', remediation: 'r' },
+        { id: '2', title: 'T', description: '[Dormant] High issue', severity: 'high' as const, category: 'configuration' as const, serverName: 's', remediation: 'r' },
+      ];
+      expect(calculateScore(findings)).toBe(100);
+    });
   });
 
   describe('severityIcon', () => {

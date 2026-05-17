@@ -5,18 +5,36 @@ import { scanPermissions } from './permissions.js';
 import { scanConfiguration } from './configuration.js';
 import { scanThreats } from './threats.js';
 import { scanTransport } from './transport.js';
+import { scanToolPoisoning } from './tool-poisoning.js';
 import { scanRegistry } from './registry.js';
 import { pluginRegistry } from '../plugins/index.js';
 import { computeConfidence } from '../ai/confidence.js';
 
 export function scanServer(name: string, config: MCPServerConfig): ServerScanResult {
+  const isDormant = config.disabled === true;
+
+  let toolPoisoningFindings: Finding[] = [];
+  try {
+    toolPoisoningFindings = scanToolPoisoning(name, config);
+  } catch {
+    // Tool-poisoning scanner errors are non-fatal
+  }
+
   const findings: Finding[] = [
     ...scanConfiguration(name, config),
     ...scanSupplyChain(name, config),
     ...scanPermissions(name, config),
     ...scanThreats(name, config),
     ...scanTransport(name, config),
-  ].map(f => ({ ...f, confidence: computeConfidence(f, config) }));
+    ...toolPoisoningFindings,
+  ].map(f => {
+    const withConfidence = { ...f, confidence: computeConfidence(f, config) };
+    // Prefix non-info findings with [Dormant] for disabled servers
+    if (isDormant && withConfidence.severity !== 'info' && !withConfidence.description.startsWith('[Dormant]')) {
+      return { ...withConfidence, description: `[Dormant] ${withConfidence.description}` };
+    }
+    return withConfidence;
+  });
 
   return {
     name,

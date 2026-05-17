@@ -1,0 +1,88 @@
+{
+  "mcpServers": {
+    "docker-security-opt-seccomp": {
+      "command": "docker",
+      "args": ["run", "--security-opt", "seccomp=unconfined", "image:1.0"]
+    },
+    "docker-security-opt-apparmor": {
+      "command": "docker",
+      "args": ["run", "--security-opt", "apparmor=unconfined", "image:1.0"]
+    },
+    "docker-security-opt-label": {
+      "command": "docker",
+      "args": ["run", "--security-opt", "label=disable", "image:1.0"]
+    },
+    "docker-user-root": {
+      "command": "docker",
+      "args": ["run", "--user", "root", "image:1.0"]
+    },
+    "docker-userns-host": {
+      "command": "docker",
+      "args": ["run", "--userns=host", "image:1.0"]
+    },
+    "docker-uts-host": {
+      "command": "docker",
+      "args": ["run", "--uts=host", "image:1.0"]
+    },
+    "docker-cgroupns-host": {
+      "command": "docker",
+      "args": ["run", "--cgroupns=host", "image:1.0"]
+    },
+    "docker-device": {
+      "command": "docker",
+      "args": ["run", "--device", "/dev/sda", "image:1.0"]
+    },
+    "docker-dns": {
+      "command": "docker",
+      "args": ["run", "--dns", "8.8.8.8", "image:1.0"]
+    },
+    "docker-add-host": {
+      "command": "docker",
+      "args": ["run", "--add-host", "evil.com:1.2.3.4", "image:1.0"]
+    },
+    "docker-entrypoint": {
+      "command": "docker",
+      "args": ["run", "--entrypoint", "/bin/sh", "image:1.0"]
+    },
+    "docker-cap-add-space-all": {
+      "command": "docker",
+      "args": ["run", "--cap-add", "ALL", "image:1.0"]
+    },
+    "docker-cap-add-space-net-admin": {
+      "command": "docker",
+      "args": ["run", "--cap-add", "NET_ADMIN", "image:1.0"]
+    },
+    "docker-cap-add-space-chown": {
+      "command": "docker",
+      "args": ["run", "--cap-add", "CHOWN", "image:1.0"]
+    },
+    "docker-mount-sensitive": {
+      "command": "docker",
+      "args": ["run", "--mount", "type=bind,source=/proc,target=/proc", "image:1.0"]
+    },
+    "docker-mount-target-root": {
+      "command": "docker",
+      "args": ["run", "--mount", "type=bind,source=/hostfs,target=/", "image:1.0"]
+    },
+    "docker-mount-safe": {
+      "command": "docker",
+      "args": ["run", "--mount", "type=bind,source=/app/data,target=/data", "image:1.0"]
+    },
+    "docker-compose-cmd": {
+      "command": "docker",
+      "args": ["compose", "up"]
+    },
+    "docker-compose-hyphen": {
+      "command": "docker-compose",
+      "args": ["up"]
+    },
+    "docker-v-target-root": {
+      "command": "docker",
+      "args": ["run", "-v", "/hostfs:/", "image:1.0"]
+    },
+    "docker-safe-hardened": {
+      "command": "docker",
+      "args": ["run", "--rm", "-v", "/app/data:/data:ro", "safe-image:2.0.0"]
+    }
+  }
+}

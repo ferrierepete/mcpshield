@@ -47,9 +47,20 @@ export function loadConfig(configPath: string): MCPConfig {
     return { mcpServers: parsed.mcpServers };
   }
 
-  // 2. VS Code format: { servers: { name: config } }
+  // 2. VS Code format: { servers: { name: config }, inputs: [...] }
   if (parsed.servers && typeof parsed.servers === 'object' && !Array.isArray(parsed.servers)) {
-    return { mcpServers: parsed.servers };
+    const rawServers = parsed.servers as Record<string, MCPServerConfig>;
+    const inputs = Array.isArray(parsed.inputs)
+      ? parsed.inputs as Array<{ id: string; type: string; password?: boolean }>
+      : undefined;
+    if (!inputs) {
+      return { mcpServers: rawServers };
+    }
+    const servers: Record<string, MCPServerConfig> = {};
+    for (const [name, config] of Object.entries(rawServers)) {
+      servers[name] = { ...config, inputs };
+    }
+    return { mcpServers: servers };
   }
 
   // 3. Continue format: { mcpServers: [ { name: "x", command: "..." } ] }
@@ -57,23 +68,27 @@ export function loadConfig(configPath: string): MCPConfig {
     const servers: Record<string, MCPServerConfig> = {};
     for (const entry of parsed.mcpServers) {
       if (entry.name) {
-        const { name, ...config } = entry;
-        servers[name] = config as MCPServerConfig;
+        const { name, ...rest } = entry;
+        servers[name] = { command: '', ...rest } as MCPServerConfig;
       }
     }
     return { mcpServers: servers };
   }
 
-  // 4. Zed format: { context_servers: { name: { command: { path, args, env } } } }
+  // 4. Zed format: { context_servers: { name: { command: { path, args, env }, settings } } }
   if (parsed.context_servers && typeof parsed.context_servers === 'object') {
     const servers: Record<string, MCPServerConfig> = {};
     for (const [name, entry] of Object.entries(parsed.context_servers)) {
-      const zedEntry = entry as { command?: { path?: string; args?: string[]; env?: Record<string, string> } };
+      const zedEntry = entry as {
+        command?: { path?: string; args?: string[]; env?: Record<string, string> };
+        settings?: Record<string, unknown>;
+      };
       if (zedEntry.command) {
         servers[name] = {
           command: zedEntry.command.path || '',
           args: zedEntry.command.args,
           env: zedEntry.command.env,
+          ...(zedEntry.settings && { settings: zedEntry.settings }),
         };
       }
     }
@@ -140,6 +155,29 @@ export function autoDetectConfig(warnOnEnvFallback = false): { config: MCPConfig
   }
 
   return null;
+}
+
+export function autoDetectAllConfigs(warnOnEnvFallback = false): Array<{ config: MCPConfig; path: string }> {
+  const envPath = process.env.MCP_CONFIG_PATH;
+  if (envPath) {
+    const config = loadConfigFromPath(envPath);
+    if (config) return [{ config, path: envPath }];
+    if (warnOnEnvFallback) {
+      console.warn(`[mcpshield] MCP_CONFIG_PATH is set to "${envPath}" but that file could not be loaded. ` +
+        `Falling back to auto-detection.`);
+    }
+  }
+
+  const results: Array<{ config: MCPConfig; path: string }> = [];
+  for (const p of CONFIG_PATHS) {
+    try {
+      if (fs.existsSync(p)) {
+        results.push({ config: loadConfig(p), path: p });
+      }
+    } catch { continue; }
+  }
+
+  return results;
 }
 
 export function getServerType(config: MCPServerConfig): string {

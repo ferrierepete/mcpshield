@@ -57,4 +57,23 @@ describe('SARIF Formatter', () => {
     expect(sarif.runs[0].artifacts).toHaveLength(1);
     expect(sarif.runs[0].artifacts[0].location.uri).toBe(FIXTURE_PATH);
   });
+
+  it('should have valid URLs in helpUri for all rules', () => {
+    const rules = sarif.runs[0].tool.driver.rules;
+    for (const rule of rules) {
+      expect(rule.helpUri).toBeDefined();
+      expect(rule.helpUri).toMatch(/^https:\/\//);
+    }
+  });
+
+  it('should use OWASP MCP Top 10 URL as helpUri when no URL reference exists', () => {
+    const rules = sarif.runs[0].tool.driver.rules;
+    const owaspUrl = 'https://owasp.org/www-project-mcp-top-10/';
+    for (const rule of rules) {
+      expect(rule.helpUri).toMatch(/^https:\/\//);
+      expect(rule.helpUri).toBeTruthy();
+    }
+    const owaspRules = rules.filter(r => r.helpUri === owaspUrl);
+    expect(owaspRules.length).toBeGreaterThan(0);
+  });
 });

@@ -13,6 +13,10 @@
       "command": {
         "path": "npx",
         "args": ["-y", "@modelcontextprotocol/server-filesystem", "/"]
+      },
+      "settings": {
+        "allowed_extensions": [".ts", ".js", ".json"],
+        "max_file_size": 1048576
       }
     }
   }

@@ -175,7 +175,7 @@ describe('MEDIUM: Secret env var key sanitization', () => {
   beforeEach(() => { fs.mkdirSync(tmpDir, { recursive: true }); });
   afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
-  it('should sanitize sensitive keys containing shell metacharacters', () => {
+  it('should sanitize sensitive keys containing shell metacharacters', async () => {
     // The key must match the sensitive-keys list AND contain shell metacharacters.
     // E.g. "AWS_SECRET_ACCESS_KEY$(cat)" matches "AWS_SECRET_ACCESS_KEY" via substring,
     // so it will be caught and sanitized. The $(cat) part is stripped, preventing
@@ -212,7 +212,7 @@ describe('MEDIUM: Secret env var key sanitization', () => {
       remediation: 'Use env vars',
     }];
 
-    const { config: fixed } = applyFixes(config, findings);
+    const { config: fixed } = await applyFixes(config, findings);
     const env = fixed.mcpServers['evil-server'].env!;
 
     // The original dangerous key names must not exist after sanitization
@@ -228,7 +228,7 @@ describe('MEDIUM: Secret env var key sanitization', () => {
     }
   });
 
-  it('should produce safe env var names for AWS-style sensitive keys', () => {
+  it('should produce safe env var names for AWS-style sensitive keys', async () => {
     const configPath = path.join(tmpDir, 'aws-config.json');
     const configWithAws = {
       mcpServers: {
@@ -255,7 +255,7 @@ describe('MEDIUM: Secret env var key sanitization', () => {
       remediation: 'Use env vars',
     }];
 
-    const { config: fixed } = applyFixes(config, findings);
+    const { config: fixed } = await applyFixes(config, findings);
     const env = fixed.mcpServers['aws-server'].env!;
 
     // All keys must be alphanumeric + underscore only

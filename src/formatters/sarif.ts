@@ -52,6 +52,16 @@ interface SarifFix {
   description: { text: string };
 }
 
+const OWASP_MCP_URL = 'https://owasp.org/www-project-mcp-top-10/';
+
+function resolveHelpUri(references?: string[]): string {
+  if (references?.length) {
+    const urlRef = references.find(r => r.startsWith('https://'));
+    if (urlRef) return urlRef;
+  }
+  return OWASP_MCP_URL;
+}
+
 const SEVERITY_TO_SARIF_LEVEL: Record<Severity, string> = {
   critical: 'error',
   high: 'error',
@@ -77,7 +87,7 @@ export function toSarif(result: ScanResult, version: string = '0.1.0'): SarifLog
           shortDescription: { text: finding.title },
           fullDescription: { text: finding.description },
           defaultConfiguration: { level: SEVERITY_TO_SARIF_LEVEL[finding.severity] },
-          ...(finding.references?.length ? { helpUri: finding.references[0] } : {}),
+          helpUri: resolveHelpUri(finding.references),
         });
       }
 

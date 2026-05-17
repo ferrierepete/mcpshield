@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "ws-insecure": {
+      "command": "node",
+      "args": [],
+      "url": "ws://remote-server.example.com:3000/mcp"
+    },
+    "wss-safe": {
+      "command": "node",
+      "args": [],
+      "url": "wss://api.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer token123"
+      }
+    },
+    "ws-localhost": {
+      "command": "node",
+      "args": [],
+      "url": "ws://localhost:3000/mcp"
+    },
+    "url-credentials": {
+      "command": "node",
+      "args": [],
+      "url": "https://admin:secretpass@api.example.com/mcp"
+    },
+    "url-credentials-http": {
+      "command": "node",
+      "args": [],
+      "url": "http://user:p@ss!word@remote.example.com/api"
+    }
+  }
+}

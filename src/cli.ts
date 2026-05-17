@@ -2,7 +2,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
-import { autoDetectConfig, discoverConfigs, loadConfig, resolveSafeConfigPath } from './scanners/config-loader.js';
+import { autoDetectConfig, autoDetectAllConfigs, discoverConfigs, loadConfig, resolveSafeConfigPath } from './scanners/config-loader.js';
 import { scanAllServers, scanAllServersWithRegistry } from './scanners/index.js';
 import { severityIcon } from './utils/helpers.js';
 import { ScanResult, OWASP_MCP_TOP_CATEGORIES, Severity } from './types/index.js';
@@ -50,6 +50,7 @@ program
     // Load config
     let config;
     let configPath: string;
+    let configCount = 1;
 
     if (opts.config) {
       const safePath = resolveSafeConfigPath(opts.config);
@@ -65,15 +66,27 @@ program
         process.exit(1);
       }
     } else {
-      const auto = autoDetectConfig(true);
-      if (!auto) {
+      const allConfigs = autoDetectAllConfigs(true);
+      if (allConfigs.length === 0) {
         console.error(chalk.red('Error: No MCP configuration found.'));
         console.error(chalk.dim('Searched: Claude Desktop, VS Code, Cursor, .mcp/ directories'));
         console.error(chalk.dim('Use --config to specify a path, or set MCP_CONFIG_PATH env var.'));
         process.exit(1);
       }
-      config = auto.config;
-      configPath = auto.path;
+      if (allConfigs.length === 1) {
+        config = allConfigs[0].config;
+        configPath = allConfigs[0].path;
+      } else {
+        configCount = allConfigs.length;
+        const mergedServers: Record<string, import('./types/index.js').MCPServerConfig> = {};
+        const configPaths: string[] = [];
+        for (const c of allConfigs) {
+          configPaths.push(c.path);
+          Object.assign(mergedServers, c.config.mcpServers);
+        }
+        config = { mcpServers: mergedServers };
+        configPath = configPaths.join(', ');
+      }
     }
 
     const serverCount = Object.keys(config.mcpServers).length;
@@ -155,9 +168,9 @@ program
     } else if (format === 'sarif') {
       console.log(JSON.stringify(toSarif(filtered, VERSION), null, 2));
     } else if (opts.quiet) {
-      printQuiet(filtered);
+      printQuiet(filtered, configCount);
     } else {
-      printPretty(configPath, filtered);
+      printPretty(configPath, filtered, configCount);
     }
 
     // Exit code based on severity (use unfiltered result for exit codes)
@@ -230,7 +243,7 @@ program
     console.log(chalk.bold.cyan('\n🔧 MCPShield Auto-Fix\n'));
     console.log(chalk.dim(`Config: ${configPath}\n`));
 
-    const { config: fixedConfig, result: fixResult } = applyFixes(config, allFindings);
+    const { config: fixedConfig, result: fixResult } = await applyFixes(config, allFindings);
 
     for (const applied of fixResult.applied) {
       console.log(`  ${chalk.green('✓')} ${applied}`);
@@ -304,7 +317,7 @@ program
     });
   });
 
-function printQuiet(result: ScanResult): void {
+function printQuiet(result: ScanResult, configCount = 1): void {
   const s = result.summary;
   const parts = [
     s.critical ? `${s.critical} critical` : null,
@@ -315,7 +328,8 @@ function printQuiet(result: ScanResult): void {
   ].filter(Boolean);
   const scoreLabel = s.score >= 80 ? '✅' : s.score >= 60 ? '⚠️' : '🔴';
   const summary = parts.length ? parts.join(', ') : 'no findings';
-  console.log(`${scoreLabel} Score: ${s.score}/100 — ${summary} (${result.servers.length} server(s) scanned)`);
+  const configLabel = configCount > 1 ? `, ${configCount} configs` : '';
+  console.log(`${scoreLabel} Score: ${s.score}/100 — ${summary} (${result.servers.length} server(s)${configLabel})`);
 }
 
 function applyFilters(result: ScanResult, threshold: Severity, ignoreList: string[]): ScanResult {
@@ -349,11 +363,14 @@ function applyFilters(result: ScanResult, threshold: Severity, ignoreList: strin
   };
 }
 
-function printPretty(configPath: string, result: ScanResult) {
+function printPretty(configPath: string, result: ScanResult, configCount = 1) {
   console.log();
   console.log(chalk.bold.cyan('🔒 MCPShield Security Report'));
   console.log(chalk.dim('─'.repeat(50)));
   console.log(`${chalk.dim('Config:')} ${configPath}`);
+  if (configCount > 1) {
+    console.log(`${chalk.dim('Configs scanned:')} ${configCount}`);
+  }
   console.log(`${chalk.dim('Date:')}  ${new Date(result.timestamp).toLocaleString()}`);
   console.log();
 
@@ -411,7 +428,8 @@ function printPretty(configPath: string, result: ScanResult) {
 
   console.log();
   console.log(chalk.dim('─'.repeat(50)));
-  console.log(chalk.dim(`Scanned ${result.servers.length} server(s) • MCPShield v${VERSION}`));
+  const configLabel = configCount > 1 ? ` • ${configCount} config files` : '';
+  console.log(chalk.dim(`Scanned ${result.servers.length} server(s)${configLabel} • MCPShield v${VERSION}`));
   console.log();
 }
 

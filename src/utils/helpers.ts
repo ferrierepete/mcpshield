@@ -52,7 +52,8 @@ const SEVERITY_SCORES: Record<Severity, number> = {
 };
 
 export function calculateScore(findings: Finding[]): number {
-  const totalPenalty = findings.reduce((sum, f) => sum + SEVERITY_SCORES[f.severity], 0);
+  const activeFindings = findings.filter(f => !f.description.startsWith('[Dormant]'));
+  const totalPenalty = activeFindings.reduce((sum, f) => sum + SEVERITY_SCORES[f.severity], 0);
   return Math.max(0, 100 - totalPenalty);
 }
 

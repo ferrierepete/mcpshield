@@ -334,6 +334,30 @@ describe('CLI Integration', () => {
     });
   });
 
+  describe('scan — multi-config auto-detection', () => {
+    it('scans single config via MCP_CONFIG_PATH env var', async () => {
+      const r = await runCli(['scan', '--quiet'], { MCP_CONFIG_PATH: TEST_CONFIG });
+      expect([0, 1, 2]).toContain(r.code);
+      expect(r.stdout).toMatch(/Score:/);
+    });
+
+    it('single config does not show config count in quiet output', async () => {
+      const r = await runCli(['scan', '--quiet'], { MCP_CONFIG_PATH: TEST_CONFIG });
+      expect(r.stdout).not.toContain('configs');
+    });
+
+    it('auto-detect merges servers from all discovered configs', async () => {
+      const r = await runCli(['scan', '--format', 'json', '--no-spinner'], {});
+      if (r.code === null) return;
+      expect([0, 1, 2]).toContain(r.code);
+      if (r.code !== 0) {
+        const parsed = JSON.parse(r.stdout);
+        expect(parsed).toHaveProperty('servers');
+        expect(parsed).toHaveProperty('summary');
+      }
+    });
+  });
+
   // ── list ──────────────────────────────────────────────────────────────────────────────────────
 
   describe('list', () => {

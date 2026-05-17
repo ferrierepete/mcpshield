@@ -1,6 +1,27 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { MCPConfig, Finding } from '../types/index.js';
 
+/**
+ * Resolve the exact latest version of an npm package from the registry.
+ * Returns the version string (e.g. "1.2.3") or null if the fetch fails.
+ */
+export async function resolveExactVersion(pkgName: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://registry.npmjs.org/${encodeURIComponent(pkgName)}/latest`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    const body: unknown = await res.json();
+    if (typeof body === 'object' && body !== null && 'version' in body) {
+      const v = (body as { version: unknown }).version;
+      return typeof v === 'string' ? v : null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 interface FixAction {
   findingTitle: string;
   description: string;
@@ -10,7 +31,7 @@ interface FixAction {
 const FIX_ACTIONS: FixAction[] = [
   {
     findingTitle: 'Unpinned Package Version',
-    description: 'Pin package to latest version placeholder (requires manual version entry)',
+    description: 'Pin package to exact resolved version',
     apply: (config, serverName) => {
       const server = config.mcpServers[serverName];
       if (!server?.args) return null;
@@ -21,7 +42,7 @@ const FIX_ACTIONS: FixAction[] = [
         if ((arg.startsWith('@') || !arg.startsWith('-')) && arg !== '-y') {
           const lastAt = arg.lastIndexOf('@');
           if (lastAt <= 0) {
-            return `${arg}@latest`;
+            return `${arg}@0.0.0-REVIEW-NEEDED`;
           }
         }
         return arg;
@@ -120,7 +141,7 @@ export function getAvailableFixes(findings: Finding[]): FixAction[] {
   );
 }
 
-export function applyFixes(
+export function applyFixesSync(
   config: MCPConfig,
   findings: Finding[],
 ): { config: MCPConfig; result: FixResult } {
@@ -141,6 +162,46 @@ export function applyFixes(
   }
 
   return { config: current, result };
+}
+
+export async function applyFixes(
+  config: MCPConfig,
+  findings: Finding[],
+): Promise<{ config: MCPConfig; result: FixResult }> {
+  const { config: fixed, result } = applyFixesSync(config, findings);
+
+  const REVIEW_TAG = '@0.0.0-REVIEW-NEEDED';
+  let hasReviewTag = false;
+  for (const server of Object.values(fixed.mcpServers)) {
+    if (server.args?.some(a => a.includes(REVIEW_TAG))) {
+      hasReviewTag = true;
+      break;
+    }
+  }
+
+  if (!hasReviewTag) {
+    return { config: fixed, result };
+  }
+
+  const updated = { ...fixed, mcpServers: { ...fixed.mcpServers } };
+  for (const [name, server] of Object.entries(fixed.mcpServers)) {
+    if (!server.args) continue;
+    const newArgs = [...server.args];
+    let changed = false;
+    for (let i = 0; i < newArgs.length; i++) {
+      const arg = newArgs[i];
+      if (!arg.endsWith(REVIEW_TAG)) continue;
+      const pkgName = arg.slice(0, arg.length - REVIEW_TAG.length);
+      const version = await resolveExactVersion(pkgName);
+      newArgs[i] = version ? `${pkgName}@${version}` : arg;
+      changed = true;
+    }
+    if (changed) {
+      updated.mcpServers[name] = { ...server, args: newArgs };
+    }
+  }
+
+  return { config: updated, result };
 }
 
 export function writeConfig(configPath: string, config: MCPConfig): void {

@@ -1,8 +1,11 @@
 import { MCPServerConfig, Finding } from '../types/index.js';
 import { createFinding } from '../utils/helpers.js';
 
+const OWASP_MCP_URL = 'https://owasp.org/www-project-mcp-top-10/';
+
 const DANGEROUS_PATHS = [
   '/', '/home', '/etc', '/var', '/usr', '/root', '/boot', '/sys', '/proc',
+  '/tmp', '/dev', '/var/run', '/run', '/opt',
   '~', '$HOME', '${HOME}',
 ];
 
@@ -56,7 +59,7 @@ export function scanPermissions(name: string, config: MCPServerConfig): Finding[
         category: 'permissions',
         serverName: name,
         remediation: `Restrict filesystem access to only the specific directories this server needs. Replace "${dangerousPath}" with a scoped path.`,
-        references: ['MCP03:2025 - Privilege Escalation via Scope Creep', 'MCP07:2025 - Insufficient Authentication & Authorization'],
+        references: [OWASP_MCP_URL, 'MCP03:2025 - Privilege Escalation via Scope Creep', 'MCP07:2025 - Insufficient Authentication & Authorization'],
       }));
       break; // One finding per server for this category
     }
@@ -75,7 +78,7 @@ export function scanPermissions(name: string, config: MCPServerConfig): Finding[
       category: 'authentication',
       serverName: name,
       remediation: 'Use a secrets manager or environment variable injection instead of hardcoding credentials in the config file.',
-      references: ['MCP01:2025 - Token Mismanagement & Secret Exposure'],
+      references: [OWASP_MCP_URL, 'MCP01:2025 - Token Mismanagement & Secret Exposure'],
     }));
   }
 
@@ -91,7 +94,7 @@ export function scanPermissions(name: string, config: MCPServerConfig): Finding[
           category: 'authentication',
           serverName: name,
           remediation: 'Use a secrets manager or environment variable injection instead of hardcoding credentials in the config file.',
-          references: ['MCP01:2025 - Token Mismanagement & Secret Exposure'],
+          references: [OWASP_MCP_URL, 'MCP01:2025 - Token Mismanagement & Secret Exposure'],
         }));
         break;
       }
@@ -108,20 +111,34 @@ export function scanPermissions(name: string, config: MCPServerConfig): Finding[
         category: 'configuration',
         serverName: name,
         remediation: `Set a specific value for "${key}" or remove it if unused.`,
+        references: [OWASP_MCP_URL],
       }));
     }
   }
 
   // Check for network-accessible configurations
-  if (args.includes('0.0.0.0') || args.includes('::') || args.includes('--host 0.0.0.0')) {
+  if (args.includes('0.0.0.0') || args.includes('::') || args.includes(':::') || args.includes('--host 0.0.0.0')) {
     findings.push(createFinding({
       title: 'Network Binding to All Interfaces',
-      description: 'Server is configured to bind to all network interfaces (0.0.0.0 or ::). This exposes the server to all network connections.',
+      description: 'Server is configured to bind to all network interfaces (0.0.0.0, ::, or :::). This exposes the server to all network connections.',
       severity: 'high',
       category: 'network',
       serverName: name,
       remediation: 'Bind to localhost (127.0.0.1) unless remote access is explicitly needed. Use authentication if binding to non-localhost.',
-      references: ['MCP07:2025 - Insufficient Authentication & Authorization'],
+      references: [OWASP_MCP_URL, 'MCP07:2025 - Insufficient Authentication & Authorization'],
+    }));
+  }
+
+  // Check for IPv6 ::: binding with port (e.g. [::]:8080) — any-address with explicit port
+  if (args.includes(':::')) {
+    findings.push(createFinding({
+      title: 'IPv6 Any-Address Binding with Port',
+      description: 'Server is configured to bind to IPv6 any-address (:::) with a port. This exposes the server to all IPv6 and often IPv4 connections.',
+      severity: 'critical',
+      category: 'network',
+      serverName: name,
+      remediation: 'Bind to localhost (::1) unless remote access is explicitly needed. Use authentication if binding to non-localhost.',
+      references: [OWASP_MCP_URL, 'MCP07:2025 - Insufficient Authentication & Authorization'],
     }));
   }
 
@@ -136,7 +153,76 @@ export function scanPermissions(name: string, config: MCPServerConfig): Finding[
         category: 'permissions',
         serverName: name,
         remediation: `Remove "${flag}" and use specific, scoped permissions instead.`,
-        references: ['MCP03:2025 - Privilege Escalation via Scope Creep'],
+        references: [OWASP_MCP_URL, 'MCP03:2025 - Privilege Escalation via Scope Creep'],
+      }));
+    }
+  }
+
+  const cmdParts = (config.args || []);
+  if (config.command === 'sudo' || cmdParts.some(a => a === 'sudo')) {
+    findings.push(createFinding({
+      title: 'Privilege Escalation via sudo',
+      description: 'Server executes commands with sudo, granting root-level privileges. This is a severe security risk.',
+      severity: 'critical',
+      category: 'permissions',
+      serverName: name,
+      remediation: 'Remove sudo and run the MCP server with the minimum required privileges instead.',
+      references: [OWASP_MCP_URL, 'MCP03:2025 - Privilege Escalation via Scope Creep', 'MCP07:2025 - Insufficient Authentication & Authorization'],
+    }));
+  }
+
+  const ownershipCmds = ['chmod', 'chown'];
+  for (const ownershipCmd of ownershipCmds) {
+    if (cmdParts.some(a => a === ownershipCmd)) {
+      findings.push(createFinding({
+        title: `Permission Modification via ${ownershipCmd}`,
+        description: `Server uses "${ownershipCmd}" to modify file permissions or ownership, which can lead to privilege escalation.`,
+        severity: 'high',
+        category: 'permissions',
+        serverName: name,
+        remediation: `Remove "${ownershipCmd}" from the server configuration. Use pre-configured file permissions instead.`,
+        references: [OWASP_MCP_URL, 'MCP03:2025 - Privilege Escalation via Scope Creep'],
+      }));
+    }
+  }
+
+  const pathTraversalPatterns = ['/..',  '/./', '//'];
+  for (const pattern of pathTraversalPatterns) {
+    if (cmdParts.some(a => a.includes(pattern))) {
+      findings.push(createFinding({
+        title: 'Path Traversal Pattern Detected',
+        description: `Server arguments contain path traversal pattern "${pattern}". This can be used to escape intended directory boundaries.`,
+        severity: 'high',
+        category: 'permissions',
+        serverName: name,
+        remediation: 'Use absolute, normalized paths without traversal sequences. Validate and sanitize all path arguments.',
+        references: [OWASP_MCP_URL, 'MCP03:2025 - Privilege Escalation via Scope Creep'],
+      }));
+      break;
+    }
+  }
+
+  // Check for auto-approved tools combined with broad permissions
+  const hasAutoApprove = (config.autoApprove?.length ?? 0) > 0;
+  const hasAlwaysAllow = (config.alwaysAllow?.length ?? 0) > 0;
+  if (hasAutoApprove || hasAlwaysAllow) {
+    const hasBroadFilesystem = DANGEROUS_PATHS.some(dangerousPath => {
+      const pattern = dangerousPath === '/'
+        ? /(?:^|\s)\/(?:$|\s)/
+        : new RegExp(`(?:^|\\s)${dangerousPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|\\s)`);
+      return pattern.test(args);
+    });
+    const hasBroadNetwork = args.includes('0.0.0.0') || args.includes('::') || args.includes(':::');
+    if (hasBroadFilesystem || hasBroadNetwork) {
+      const toolList = hasAutoApprove ? config.autoApprove! : config.alwaysAllow!;
+      findings.push(createFinding({
+        title: 'Auto-Approved Tools with Broad Permissions',
+        description: `Server has auto-approved tools (${toolList.join(', ')}) combined with broad filesystem access or network binding. This bypasses user confirmation for sensitive operations.`,
+        severity: 'high',
+        category: 'permissions',
+        serverName: name,
+        remediation: 'Remove auto-approve/alwaysAllow for tools that access sensitive resources, or restrict filesystem and network access to specific scoped paths.',
+        references: [OWASP_MCP_URL, 'MCP03:2025 - Privilege Escalation via Scope Creep'],
       }));
     }
   }

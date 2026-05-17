@@ -40,6 +40,11 @@ export interface MCPServerConfig {
   disabled?: boolean;
   url?: string;
   headers?: Record<string, string>;
+  type?: 'stdio' | 'sse' | 'http';
+  autoApprove?: string[];
+  alwaysAllow?: string[];
+  inputs?: Array<{ id: string; type: string; password?: boolean }>;
+  settings?: Record<string, unknown>;
 }
 
 export interface MCPConfig {

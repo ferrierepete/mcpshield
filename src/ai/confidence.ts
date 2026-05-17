@@ -125,6 +125,62 @@ const CONFIDENCE_RULES: ConfidenceRule[] = [
     adjust: 0.1,
     reason: 'curl/wget as MCP command is almost always suspicious',
   },
+
+  {
+    match: (f) => !!f.title.match(/Shell Interpreter/),
+    adjust: 0.15,
+    reason: 'Shell interpreter access increases command injection risk',
+  },
+  {
+    match: (f) => !!f.title.match(/Direct Code Execution/) || !!f.description.match(/node -e/),
+    adjust: 0.2,
+    reason: 'Direct code execution is a high-risk pattern',
+  },
+  {
+    match: (f) => !!f.title.match(/Reverse Shell/),
+    adjust: 0.25,
+    reason: 'Reverse shell patterns are almost always malicious',
+  },
+  {
+    match: (f) => !!f.description.match(/--security-opt/),
+    adjust: 0.15,
+    reason: 'Docker security option manipulation weakens container isolation',
+  },
+  {
+    match: (f) => !!f.description.match(/--user root/),
+    adjust: 0.15,
+    reason: 'Running as root in a container is a privilege escalation risk',
+  },
+  {
+    match: (f) => !!f.title.match(/sudo/) || !!f.description.match(/sudo/),
+    adjust: 0.2,
+    reason: 'sudo usage in MCP server config is a privilege escalation indicator',
+  },
+  {
+    match: (f) => !!f.title.match(/Docker Compose/),
+    adjust: -0.2,
+    reason: 'Docker Compose references cannot be fully analyzed statically',
+  },
+  {
+    match: (f) => !!f.description.match(/ws:\/\//),
+    adjust: 0.1,
+    reason: 'WebSocket connection increases data exfiltration surface',
+  },
+  {
+    match: (f) => !!f.title.match(/Credentials in URL/),
+    adjust: 0.15,
+    reason: 'Credentials embedded in URLs are a clear secret exposure',
+  },
+  {
+    match: (f) => !!f.title.match(/Unpinned/) && !!f.description.match(/semver range/),
+    adjust: 0.1,
+    reason: 'Semver range with unpinned version allows unexpected updates',
+  },
+  {
+    match: (f) => !!f.title.match(/Typosquat/) && !!f.description.match(/scope extension/),
+    adjust: 0.1,
+    reason: 'Typosquat with scope extension is a strong attack indicator',
+  },
 ];
 
 const BASE_CONFIDENCE: Record<string, number> = {

@@ -7,6 +7,20 @@
     "github": {
       "type": "http",
       "url": "https://api.githubcopilot.com/mcp"
+    },
+    "sse-server": {
+      "type": "sse",
+      "url": "https://mcp.example.com/sse",
+      "headers": {
+        "Authorization": "Bearer ${input:apiToken}"
+      }
     }
-  }
+  },
+  "inputs": [
+    {
+      "id": "apiToken",
+      "type": "promptString",
+      "password": true
+    }
+  ]
 }

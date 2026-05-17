@@ -22,8 +22,17 @@ describe('MCPShield Scanner', () => {
   it('should give filesystem-safe a good score', () => {
     const server = result.servers.find(s => s.name === 'filesystem-safe');
     expect(server).toBeDefined();
-    expect(server!.findings.length).toBe(0); // pinned version + verified package
+    const nonInfoFindings = server!.findings.filter(f => f.severity !== 'info');
+    expect(nonInfoFindings.length).toBe(0);
     expect(server!.score).toBe(100);
+  });
+
+  it('should include tool-poisoning info finding in pipeline', () => {
+    const server = result.servers.find(s => s.name === 'filesystem-safe');
+    const tpFinding = server!.findings.find(f => f.title === 'Runtime Tool Poisoning Cannot Be Verified');
+    expect(tpFinding).toBeDefined();
+    expect(tpFinding!.severity).toBe('info');
+    expect(tpFinding!.references).toContain('MCP02:2025 - Tool Poisoning');
   });
 
   it('should detect root filesystem access', () => {
@@ -80,5 +89,74 @@ describe('MCPShield Scanner', () => {
     const allFindings = result.servers.flatMap(s => s.findings);
     const ids = allFindings.map(f => f.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe('Dormant server handling', () => {
+  beforeEach(() => {
+    resetCounter();
+  });
+
+  it('should prefix non-info findings with [Dormant] for disabled servers', () => {
+    const servers = {
+      'dormant-server': {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-filesystem', '/'],
+        disabled: true,
+        env: { AWS_SECRET_ACCESS_KEY: 'AKIAIOSFODNN7EXAMPLE' },
+      },
+    };
+    const result = scanAllServers(servers, 'test');
+    const server = result.servers[0];
+    const nonInfoFindings = server.findings.filter(f => f.severity !== 'info');
+    expect(nonInfoFindings.length).toBeGreaterThan(0);
+    for (const f of nonInfoFindings) {
+      expect(f.description).toMatch(/^\[Dormant\]/);
+    }
+  });
+
+  it('should NOT prefix info findings with [Dormant]', () => {
+    const servers = {
+      'dormant-server': {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-filesystem', '/'],
+        disabled: true,
+      },
+    };
+    const result = scanAllServers(servers, 'test');
+    const server = result.servers[0];
+    const infoFindings = server.findings.filter(f => f.severity === 'info');
+    for (const f of infoFindings) {
+      expect(f.description).not.toMatch(/^\[Dormant\]/);
+    }
+  });
+
+  it('should give disabled servers a score of 100 since dormant findings are excluded', () => {
+    const servers = {
+      'dormant-server': {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-filesystem', '/'],
+        disabled: true,
+        env: { AWS_SECRET_ACCESS_KEY: 'AKIAIOSFODNN7EXAMPLE' },
+      },
+    };
+    const result = scanAllServers(servers, 'test');
+    const server = result.servers[0];
+    expect(server.score).toBe(100);
+  });
+
+  it('should NOT prefix findings for enabled servers', () => {
+    const servers = {
+      'active-server': {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-filesystem', '/'],
+        env: { AWS_SECRET_ACCESS_KEY: 'AKIAIOSFODNN7EXAMPLE' },
+      },
+    };
+    const result = scanAllServers(servers, 'test');
+    const server = result.servers[0];
+    for (const f of server.findings) {
+      expect(f.description).not.toMatch(/^\[Dormant\]/);
+    }
   });
 });
