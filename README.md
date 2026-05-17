@@ -47,7 +47,7 @@ npx @ferrierepete/mcpshield scan --registry
 npx @ferrierepete/mcpshield scan --severity high
 
 # Ignore specific findings
-npx @ferrierepete/mcpshield scan --ignore MCP-001 MCP-003
+npx @ferrierepete/mcpshield scan --ignore MCPS-001 MCPS-003
 
 # Quiet mode (CI-friendly one-liner output)
 npx @ferrierepete/mcpshield scan --quiet
@@ -56,7 +56,7 @@ npx @ferrierepete/mcpshield scan --quiet
 npx @ferrierepete/mcpshield scan -s high
 
 # Ignore findings by ID or title (partial matching supported)
-npx @ferrierepete/mcpshield scan --ignore MCP-001 Typosquat
+npx @ferrierepete/mcpshield scan --ignore MCPS-001 Typosquat
 
 # Filter out low-confidence findings (heuristic, no API key needed)
 # Warns if all findings are filtered to zero
@@ -84,19 +84,23 @@ npx @ferrierepete/mcpshield list
 npx @ferrierepete/mcpshield owasp
 ```
 
+**Multi-config discovery:** `mcpshield scan` auto-discovers and scans ALL MCP configs from all installed clients (Claude Desktop, VS Code, Cursor, Windsurf, Continue, Zed, etc.) by default. No `--config` flag needed. Use `mcpshield list` to see which config files were discovered.
+
 ## What It Detects
 
 | Category | Checks |
 |----------|--------|
-| **Supply Chain** | Unpinned versions, unverified packages, known risky packages, typosquats |
-| **Registry** | Package existence on npm/PyPI, recently published packages, single-version packages, missing source repos *(with `--registry`)* |
-| **Permissions** | Broad filesystem access, sensitive working directories, overly permissive runtime flags |
-| **Secrets** | Hardcoded API keys, tokens in plaintext config |
-| **Configuration** | Missing commands, shell injection patterns, dangerous runtime flags, eval/exec patterns |
-| **Network** | Binding to 0.0.0.0, suspicious URLs (pastebin, webhook.site, etc.), IP-based server URLs |
-| **Docker** | `--privileged` flag, sensitive volume mounts, Docker socket exposure, unpinned image tags, exposed ports |
-| **HTTP/SSE Transport** | Insecure HTTP connections, missing authentication headers on remote servers |
-| **Threats** | Typosquatting, obfuscated values, data exfiltration indicators |
+| **Supply Chain** | Unpinned versions (semver ranges rejected: `^`, `~`, `>=`), unverified packages, known risky packages, typosquats, npm exec/pnpm dlx/yarn dlx/bun x runners, Python version pinning |
+| **Registry** | Package existence on npm/PyPI, recently published packages, single-version packages, missing source repos, PyPI deep analysis (age, version count, maintainer count, source repo verification) *(with `--registry`)* |
+| **Permissions** | Broad filesystem access, sensitive working directories, overly permissive runtime flags, sudo/chmod/chown in args, expanded dangerous paths (/tmp, /proc, /sys, /dev), path traversal attempts, IPv6 `:::` binding |
+| **Secrets** | Hardcoded API keys, tokens in plaintext config, 28 sensitive env var patterns, AWS/GitHub/Stripe/Slack key format detection |
+| **Configuration** | Missing commands, shell injection patterns (bash, sh, zsh, `bash -c`, `node -e`), dangerous runtime flags, eval/exec patterns, newline injection, `$VAR` expansion, input/append redirect, `/usr/bin/env` wrapper, `node --require` preload |
+| **Network** | Binding to 0.0.0.0, suspicious URLs (24 patterns including webhook.site, pastebin, Discord webhooks, Telegram bots, URL shorteners, Google Forms), IP-based server URLs, credentials in URLs |
+| **Docker** | `--privileged` flag, 11 Docker security options (`--security-opt`, `--user root`, `--cap-add`, etc.), `--mount` syntax, sensitive volume mounts, Docker socket exposure, unpinned image tags, exposed ports, docker compose detection |
+| **HTTP/SSE Transport** | Insecure HTTP connections, `ws://` detection, missing authentication headers on remote servers, URL credentials |
+| **Threats** | Typosquatting (14 patterns including `@anthropic/`, `@openai/` scope-extension bypass), reverse shell detection, hex-encoded strings, short base64 (obfuscation), credentials in URLs, URL-encoded payloads |
+| **Tool Poisoning** | Auto-approved tools, remote servers without authentication *(informational severity)* |
+| **Client-Specific** | VS Code `type`/`inputs` fields, Claude `autoApprove`/`alwaysAllow`, Zed `settings`, Continue URL-only servers |
 
 ## Commands
 
@@ -129,7 +133,7 @@ Auto-fix common security issues in your MCP config.
 | `--dry-run` | Preview fixes without writing changes |
 
 Supported auto-fixes:
-- **Pin package versions** — appends `@latest` to unpinned packages
+- **Pin package versions** — resolves exact versions from npm registry (e.g. `pkg@1.2.3`); falls back to `pkg@0.0.0-REVIEW-NEEDED` if resolution fails
 - **Replace hardcoded secrets** — substitutes with `${VAR_NAME}` references
 - **Bind to localhost** — replaces `0.0.0.0` with `127.0.0.1`
 - **Upgrade to HTTPS** — replaces `http://` with `https://` for remote URLs
@@ -191,14 +195,18 @@ Findings: 2 critical  3 high  1 medium
 📦 filesystem-dangerous [25/100]
    Command: npx
 
-   🔴 Broad Filesystem Access [MCP-001]
+   🔴 Broad Filesystem Access [MCPS-001]
     Server has access to path "/". This grants read/write access to sensitive system directories.
     → Fix: Restrict filesystem access to only the specific directories this server needs.
     Refs: MCP03:2025 - Privilege Escalation via Scope Creep, MCP07:2025 - Insufficient Authentication & Authorization
 
-   🟠 Sensitive Credentials in Config [MCP-002]
+   🟠 Sensitive Credentials in Config [MCPS-002]
     Found 1 sensitive environment variable(s): AWS_SECRET_ACCESS_KEY
     → Fix: Use a secrets manager instead of hardcoding credentials.
+
+📦 [Dormant] old-server [N/A]
+   Command: npx
+   ℹ️ Server is disabled and excluded from the security score.
 
 📦 github-safe [100/100]
    ✅ No security issues found
@@ -231,7 +239,7 @@ Create a `.mcpshieldrc`, `.mcpshieldrc.json`, or `.mcpshield.json` file in your 
 ```json
 {
   "severityThreshold": "medium",
-  "ignore": ["MCP-001"],
+  "ignore": ["MCPS-001"],
   "format": "pretty",
   "registry": false,
   "trustedPackages": ["@myorg/custom-mcp-server"],
@@ -244,6 +252,11 @@ Create a `.mcpshieldrc`, `.mcpshieldrc.json`, or `.mcpshield.json` file in your 
 ```
 
 MCPShield searches for this file in the current directory first, then the home directory.
+
+MCPShield warns about potentially dangerous `.mcpshieldrc` options:
+- Overly broad `ignore` rules that could suppress critical findings
+- Packages in `trustedPackages` that don't match known org patterns (e.g. `@modelcontextprotocol/`)
+- `minConfidence` set above 0.9 (effectively silences all findings)
 
 ### Customizing Package Lists
 
@@ -375,8 +388,12 @@ import type {
 MCPShield includes several built-in protections to prevent misuse:
 
 - **Path traversal prevention** — all config paths (whether from `--config`, `MCP_CONFIG_PATH`, or auto-detection) are validated via `resolveSafeConfigPath()`. Only paths within your current working directory or home directory are allowed. Attempts to load files like `/etc/passwd` or `/proc/self/environ` are rejected with a clear error
+- **Multi-config scanning** — scans ALL discovered MCP configs by default, not just the first one found. Servers from every client config are merged and scanned together
+- **Dormant server marking** — disabled servers get a `[Dormant]` prefix on findings and are excluded from the overall security score
 - **Config backup before writes** — the `fix` command creates a `.bak` backup of your config file before applying any changes
 - **Secret key sanitization** — the `fix` command sanitizes env var key names containing shell metacharacters (e.g. `$(cmd)`, `` `cmd` ``, `;rm -rf`) by deleting the dangerous key and replacing it with a safe alphanumeric name
+- **Exact version pinning** — auto-fix resolves exact versions from the npm registry (async) instead of using `@latest`; falls back to `@0.0.0-REVIEW-NEEDED` if the registry is unreachable
+- **SARIF with valid URLs** — all SARIF output includes valid `helpUri` links and OWASP MCP Top 10 references for each finding
 - **AI response size limits** — AI provider responses are capped at 1 MB to prevent memory exhaustion from unbounded responses
 - **Registry fail-closed** — when npm/PyPI registry checks fail (network errors, HTTP 500, rate limits), packages are treated as unverified rather than silently passing
 - **Secret values never sent to AI** — only env var *keys* (not values) are included in AI evaluation prompts
