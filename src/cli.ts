@@ -173,9 +173,13 @@ program
       printPretty(configPath, filtered, configCount);
     }
 
-    // Exit code based on severity (use unfiltered result for exit codes)
-    if (result.summary.critical > 0) process.exit(2);
-    if (result.summary.high > 0) process.exit(1);
+    // process.exitCode instead of process.exit() — exit() truncates piped output
+    if (result.summary.critical > 0) {
+      process.exitCode = 2;
+    } else if (result.summary.high > 0) {
+      process.exitCode = 1;
+    }
+    process.stdout.write('', () => {});
   });
 
 program
