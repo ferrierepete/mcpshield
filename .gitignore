@@ -5,3 +5,14 @@ dist/
 coverage/
 .env
 .tmp-test-*
+
+# Site
+site/node_modules/
+site/dist/
+site/.astro/
+
+# Screenshots
+*.png
+
+# Playwright MCP
+.playwright-mcp/

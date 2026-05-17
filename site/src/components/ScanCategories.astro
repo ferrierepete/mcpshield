@@ -1,0 +1,116 @@
+---
+const categories = [
+  {
+    id: 'supply-chain',
+    label: '001',
+    title: 'Supply Chain',
+    description: 'Unpinned versions, typosquat detection, malicious package identification, dependency vulnerability analysis, registry trust verification.',
+  },
+  {
+    id: 'permissions',
+    label: '002',
+    title: 'Permissions',
+    description: 'Filesystem access scope, sensitive directory exposure, privilege escalation paths, runtime capability mapping, sandbox compliance.',
+  },
+  {
+    id: 'configuration',
+    label: '003',
+    title: 'Configuration',
+    description: 'Shell injection patterns, dangerous runtime flags, environment variable risks, argument parsing vulnerabilities, transport security.',
+  },
+  {
+    id: 'secrets',
+    label: '004',
+    title: 'Secrets',
+    description: 'Hardcoded API keys, tokens in plaintext, credential exposure in environment variables, sensitive data leakage in log output.',
+  },
+];
+---
+
+<section class="scans" aria-label="Scan categories">
+  <hr />
+  <div class="scans-header reveal">
+    <span class="section-label">What it scans</span>
+  </div>
+
+  <div class="scans-list reveal-group">
+    {categories.map((cat) => (
+      <div class="scan-item reveal" id={cat.id}>
+        <div class="scan-meta">
+          <span class="scan-number">{cat.label}</span>
+          <h3 class="scan-title">{cat.title}</h3>
+        </div>
+        <p class="scan-desc">{cat.description}</p>
+      </div>
+    ))}
+  </div>
+</section>
+
+<style>
+  .scans {
+    padding: var(--space-5xl) 0 var(--space-4xl);
+  }
+
+  .scans-header {
+    margin-bottom: var(--space-2xl);
+  }
+
+  .section-label {
+    font-size: var(--text-label);
+    font-weight: var(--fw-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+  }
+
+  .scan-item {
+    padding: var(--space-xl) 0;
+    border-bottom: 1px solid var(--color-rule);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-md) var(--space-2xl);
+    align-items: baseline;
+  }
+
+  .scan-item:first-child {
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .scan-meta {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+    white-space: nowrap;
+  }
+
+  .scan-number {
+    font-size: var(--text-label);
+    font-weight: var(--fw-medium);
+    color: var(--color-accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .scan-title {
+    font-size: var(--text-title);
+    font-weight: var(--fw-semibold);
+    letter-spacing: -0.01em;
+  }
+
+  .scan-desc {
+    font-size: var(--text-body);
+    line-height: var(--lh-body);
+    color: var(--color-muted);
+    max-width: 50ch;
+  }
+
+  @media (max-width: 640px) {
+    .scan-item {
+      grid-template-columns: 1fr;
+      gap: var(--space-xs);
+    }
+
+    .scan-desc {
+      max-width: 100%;
+    }
+  }
+</style>

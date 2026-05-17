@@ -1,0 +1,147 @@
+---
+const findings = [
+  { severity: 'critical', label: 'CRITICAL', text: 'Unpinned version: no lockfile entry found for @modelcontextprotocol/server-filesystem@latest' },
+  { severity: 'high', label: 'HIGH', text: 'Filesystem access: / (full root filesystem granted to server)' },
+  { severity: 'medium', label: 'MEDIUM', text: 'Missing package README.md in distribution bundle' },
+  { severity: 'low', label: 'LOW', text: 'No .npmignore or "files" field in package.json manifest' },
+];
+
+const severityClass: Record<string, string> = {
+  critical: 'sev-critical',
+  high: 'sev-high',
+  medium: 'sev-medium',
+  low: 'sev-low',
+};
+---
+
+<section class="demo" aria-label="Example scan output">
+  <hr />
+  <div class="demo-header reveal">
+    <span class="section-label">Example output</span>
+  </div>
+
+  <div class="demo-output reveal">
+    <div class="terminal" role="img" aria-label="Sample MCPShield scan output showing four findings at different severity levels">
+      <div class="terminal-header">
+        <span class="terminal-prompt">$</span>
+        <span class="terminal-cmd">mcpshield scan @modelcontextprotocol/server-filesystem</span>
+      </div>
+      <hr class="terminal-rule" />
+      <div class="terminal-body">
+        {findings.map((f) => (
+          <div class={`finding ${severityClass[f.severity]}`}>
+            <span class={`finding-badge badge-${f.severity}`} aria-hidden="true">{f.label}</span>
+            <span class="finding-text">{f.text}</span>
+          </div>
+        ))}
+      </div>
+      <hr class="terminal-rule" />
+      <div class="terminal-summary">
+        <span class="summary-count">4 findings</span>
+        <span class="summary-detail">1 critical, 1 high, 1 medium, 1 low</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .demo {
+    padding: var(--space-4xl) 0 var(--space-3xl);
+  }
+
+  .demo-header {
+    margin-bottom: var(--space-2xl);
+  }
+
+  .section-label {
+    font-size: var(--text-label);
+    font-weight: var(--fw-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+  }
+
+  .terminal {
+    background-color: var(--color-ink);
+    color: var(--color-paper);
+    border-radius: 3px;
+    padding: var(--space-lg);
+    overflow-x: auto;
+    max-width: 52rem;
+  }
+
+  .terminal-header {
+    display: flex;
+    gap: var(--space-xs);
+    font-size: var(--text-body);
+    margin-bottom: var(--space-md);
+  }
+
+  .terminal-prompt {
+    color: var(--color-faint);
+    user-select: none;
+  }
+
+  .terminal-cmd {
+    color: var(--color-paper);
+  }
+
+  .terminal-rule {
+    border-color: oklch(40% 0.01 75);
+    margin: var(--space-md) 0;
+  }
+
+  .terminal-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .finding {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: baseline;
+    font-size: var(--text-body);
+    line-height: var(--lh-body);
+  }
+
+  .finding-badge {
+    font-size: var(--text-label);
+    font-weight: var(--fw-semibold);
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+    min-width: 5.5rem;
+  }
+
+  .badge-critical { color: var(--color-critical); }
+  .badge-high { color: var(--color-high); }
+  .badge-medium { color: var(--color-medium); }
+  .badge-low { color: var(--color-low); }
+
+  .finding-text {
+    color: oklch(85% 0.006 80);
+  }
+
+  .terminal-summary {
+    display: flex;
+    gap: var(--space-md);
+    font-size: var(--text-body);
+    color: oklch(65% 0.008 80);
+  }
+
+  .summary-count {
+    font-weight: var(--fw-semibold);
+    color: var(--color-paper);
+  }
+
+  @media (max-width: 640px) {
+    .finding {
+      flex-direction: column;
+      gap: var(--space-2xs);
+    }
+
+    .finding-badge {
+      min-width: unset;
+    }
+  }
+</style>

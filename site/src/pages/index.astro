@@ -1,0 +1,32 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import ScanCategories from '../components/ScanCategories.astro';
+import ExampleOutput from '../components/ExampleOutput.astro';
+import InstallCTA from '../components/InstallCTA.astro';
+import Footer from '../components/Footer.astro';
+
+import '../styles/tokens.css';
+import '../styles/global.css';
+---
+
+<Layout
+  title="MCPShield — Security Scanner for MCP Servers"
+  description="Scan MCP server configurations for supply chain risks, permission overreach, misconfigurations, and secrets exposure before they reach your machine."
+>
+  <main class="page">
+    <Hero />
+    <ScanCategories />
+    <ExampleOutput />
+    <InstallCTA />
+    <Footer />
+  </main>
+</Layout>
+
+<style>
+  .page {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 var(--gutter);
+  }
+</style>

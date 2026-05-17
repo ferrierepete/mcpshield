@@ -1,0 +1,141 @@
+---
+---
+
+<section class="install" aria-label="Get started">
+  <hr />
+  <div class="install-body reveal">
+    <h2 class="install-title">Get started in 30 seconds.</h2>
+    <p class="install-desc">
+      No configuration required. Scans your default<br />
+      MCP config file automatically.
+    </p>
+
+    <div class="install-block">
+      <span class="install-prompt" aria-hidden="true">$</span>
+      <code class="install-cmd">npx mcpshield scan</code>
+      <button
+        class="copy-btn"
+        data-copy="npx mcpshield scan"
+        aria-label="Copy install command to clipboard"
+      >
+        <svg class="copy-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="5.5" y="5.5" width="8" height="8" rx="1" />
+          <path d="M3 10.5V3a1 1 0 0 1 1-1h7.5" />
+        </svg>
+        <span class="copy-label" aria-live="polite">copy</span>
+      </button>
+    </div>
+
+    <div class="install-links">
+      <a href="https://github.com/peterferreira/mcpshield" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <span class="link-sep" aria-hidden="true">·</span>
+      <a href="https://www.npmjs.com/package/mcpshield" target="_blank" rel="noopener noreferrer">npm</a>
+      <span class="link-sep" aria-hidden="true">·</span>
+      <a href="https://github.com/peterferreira/mcpshield#readme" target="_blank" rel="noopener noreferrer">Documentation</a>
+    </div>
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('.install .copy-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const text = btn.dataset.copy ?? '';
+      await navigator.clipboard.writeText(text);
+      const label = btn.querySelector<HTMLElement>('.copy-label');
+      if (label) label.textContent = 'copied';
+      setTimeout(() => { if (label) label.textContent = 'copy'; }, 1500);
+    });
+  });
+</script>
+
+<style>
+  .install {
+    padding: var(--space-5xl) 0;
+  }
+
+  .install-body {
+    max-width: 38rem;
+  }
+
+  .install-title {
+    font-size: var(--text-headline);
+    font-weight: var(--fw-bold);
+    line-height: var(--lh-snug);
+    color: var(--color-accent);
+    margin-bottom: var(--space-sm);
+  }
+
+  .install-desc {
+    color: var(--color-muted);
+    line-height: var(--lh-body);
+    margin-bottom: var(--space-xl);
+  }
+
+  .install-block {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background-color: var(--color-ink);
+    color: var(--color-paper);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: 2px;
+    font-size: var(--text-body);
+    margin-bottom: var(--space-xl);
+  }
+
+  .install-prompt {
+    color: var(--color-faint);
+    user-select: none;
+  }
+
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    padding: var(--space-2xs) var(--space-xs);
+    margin-left: var(--space-xs);
+    border-radius: 2px;
+    color: var(--color-faint);
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    transition: color var(--duration-fast) var(--ease-out-quart);
+  }
+
+  .copy-btn:hover {
+    color: var(--color-paper);
+  }
+
+  .copy-label {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: color var(--duration-fast) var(--ease-out-quart);
+  }
+
+  .install-links {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: baseline;
+    font-size: var(--text-label);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: var(--fw-medium);
+  }
+
+  .link-sep {
+    color: var(--color-rule);
+  }
+
+  .install-links a:hover {
+    color: var(--color-accent);
+  }
+
+  @media (max-width: 640px) {
+    .install-desc br {
+      display: none;
+    }
+
+    .install-block {
+      width: 100%;
+    }
+  }
+</style>
